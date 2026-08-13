@@ -1,0 +1,36 @@
+[
+  {
+    "name": "国务院政策库",
+    "site_id": "gov_cn",
+    "policy_type": "central",
+    "default_category": "综合",
+    "list_url": "https://www.gov.cn/zhengce/",
+    "page_url_pattern": "https://www.gov.cn/zhengce/index_{page}.htm",
+    "list_link_xpath": "//a[contains(@href,'content_')]",
+    "detail_title_xpath": "//title/text()",
+    "detail_title_split": "_",
+    "detail_title_index": 0,
+    "detail_content_xpath": "//div[contains(@class,'pages_content')]",
+    "detail_date_xpath": "//meta[@name='firstpublishedtime']/@content",
+    "encoding": "utf-8",
+    "max_pages": 3,
+    "delay_seconds": 1.0,
+    "title_filter": ["通知", "公告", "意见", "办法", "规定", "方案", "条例", "细则", "决定", "规划"]
+  },
+  {
+    "name": "上海市人民政府",
+    "site_id": "shanghai",
+    "policy_type": "local",
+    "default_province": "上海",
+    "list_url": "https://www.shanghai.gov.cn/nw12344/",
+    "page_url_pattern": "https://www.shanghai.gov.cn/nw12344/index_{page}.html",
+    "list_link_xpath": "//a[contains(@href,'/nw12344/2')]",
+    "detail_title_xpath": "//meta[@name='ArticleTitle']/@content",
+    "detail_content_xpath": "//div[@class='Article_content']",
+    "detail_date_xpath": "//meta[@name='PubDate']/@content",
+    "encoding": "utf-8",
+    "max_pages": 1,
+    "delay_seconds": 1.0,
+    "title_filter": ["通知", "公告", "意见", "办法", "规定", "方案", "条例", "细则"]
+  }
+]

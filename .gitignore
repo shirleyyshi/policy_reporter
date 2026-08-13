@@ -1,0 +1,70 @@
+# ===== Python / Django =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 虚拟环境
+venv/
+.venv/
+env/
+ENV/
+
+# 环境变量（含密钥，禁止提交；frontend/.env 无密钥可提交）
+backend/.env
+.env
+.env.local
+.env.*.local
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+test_db.sqlite3
+media/
+staticfiles/
+
+# ChromaDB 持久化索引（运行时生成，不入库）
+backend/chroma_db/
+chroma_db/
+
+# config_policy_spider 的 __pycache__（爬虫运行时生成）
+config_policy_spider/**/__pycache__/
+
+# Eval 报告输出（每次运行动态生成）
+backend/eval_reports/
+eval_reports/
+
+# ===== Node / 前端 =====
+node_modules/
+frontend/dist/
+frontend/.env.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== IDE / 编辑器 =====
+.idea/
+.vscode/
+.trae/
+.cursor/
+*.swp
+*.swo
+*~
+
+# ===== 测试覆盖率 =====
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ===== 系统 =====
+.DS_Store
+Thumbs.db

@@ -1,0 +1,24 @@
+/* 全局通用样式 */
+body {
+    margin: 0;
+    font-family: "Microsoft YaHei", sans-serif;
+    background-color: #f5f7fa;
+}
+
+.el-card {
+    border-radius: 8px;
+}
+
+.policy-title {
+    white-space: normal;
+    word-break: break-word;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.el-button {
+    min-width: 100px;
+}

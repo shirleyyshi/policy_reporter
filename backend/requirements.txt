@@ -1,0 +1,11 @@
+Django~=5.2.4
+djangorestframework~=3.16.0
+djangorestframework-simplejwt~=5.5.1
+django-cors-headers~=4.7.0
+django-environ~=0.14.0
+mysqlclient~=2.2.7
+python-docx~=1.2.0
+requests~=2.32.4
+openai~=1.99.1
+chromadb~=0.5.23
+gunicorn~=23.0.0
