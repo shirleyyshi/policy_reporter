@@ -289,7 +289,7 @@ onMounted(() => {
 <style scoped>
 .home-container {
   min-height: 100vh;
-  padding: 20px 48px 32px;
+  padding: 24px 48px 40px;
   max-width: 1100px;
   margin: 0 auto;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
@@ -299,12 +299,12 @@ onMounted(() => {
 }
 
 /* 顶部品牌区 */
-.hero { margin-bottom: 16px; }
+.hero { margin-bottom: 20px; }
 .brand-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .brand {
   display: flex;
@@ -353,8 +353,8 @@ onMounted(() => {
 .title {
   text-align: center;
   font-weight: 700;
-  font-size: 30px;
-  margin: 0 0 4px;
+  font-size: 32px;
+  margin: 0 0 6px;
   color: #00e5ff;
   letter-spacing: 3px;
   text-shadow: 0 0 20px rgba(0,229,255,0.3);
@@ -376,8 +376,8 @@ onMounted(() => {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0,229,255,0.15);
   border-radius: 10px;
-  padding: 8px 16px;
-  margin-bottom: 14px;
+  padding: 10px 16px;
+  margin-bottom: 18px;
 }
 .date-left {
   display: flex;
@@ -402,8 +402,8 @@ onMounted(() => {
 .card-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 @media (max-width: 640px) {
   .card-grid { grid-template-columns: 1fr; }
@@ -413,7 +413,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
+  padding: 18px 18px;
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.1);
@@ -472,7 +472,7 @@ onMounted(() => {
   gap: 4px;
 }
 .stat-num {
-  font-size: 22px;
+  font-size: 25px;
   font-weight: 700;
   color: #fff;
   line-height: 1;
