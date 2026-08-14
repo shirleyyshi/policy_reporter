@@ -26,6 +26,7 @@
           value-format="YYYY-MM-DD"
           placeholder="选择日期"
           :clearable="false"
+          :disabled-date="disableFutureDate"
           class="date-picker"
           @change="onDateChange"
         />
@@ -33,7 +34,7 @@
       <div class="date-quick">
         <el-button text class="quick-btn" @click="shiftDate(-1)">前一天</el-button>
         <el-button text class="quick-btn today-btn" @click="goToday">今天</el-button>
-        <el-button text class="quick-btn" @click="shiftDate(1)">后一天</el-button>
+        <el-button text class="quick-btn" :disabled="isMaxDate" @click="shiftDate(1)">后一天</el-button>
       </div>
     </section>
 
@@ -146,6 +147,16 @@ const username = ref(localStorage.getItem('username') || '用户')
 // 日期：从 localStorage 读取，默认今天
 const todayStr = new Date().toISOString().split('T')[0]
 const selectedDate = ref(localStorage.getItem('selectedDate') || todayStr)
+
+// 禁用日期选择器中的未来日期
+function disableFutureDate(date) {
+  const today = new Date()
+  today.setHours(23, 59, 59, 999)
+  return date.getTime() > today.getTime()
+}
+
+// 当前已是今天时，禁用"后一天"按钮
+const isMaxDate = computed(() => selectedDate.value >= todayStr)
 
 // 政策数据
 const central = ref([])
@@ -396,12 +407,15 @@ onMounted(() => {
 .quick-btn:hover { color: #00e5ff !important; }
 .today-btn { font-weight: 600; }
 
-/* 卡片网格 */
+/* 卡片网格：2x2 布局 */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
   margin-bottom: 36px;
+}
+@media (max-width: 640px) {
+  .card-grid { grid-template-columns: 1fr; }
 }
 .info-card {
   position: relative;
