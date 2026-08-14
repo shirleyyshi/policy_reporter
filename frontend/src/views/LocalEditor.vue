@@ -64,7 +64,7 @@
           class="policy-item"
           :class="{ checked: selectedIds.includes(item.id) }"
         >
-          <el-checkbox :value="item.id" :label="item.id">
+          <el-checkbox :value="item.id">
             <span class="policy-title">{{ item.title }}</span>
           </el-checkbox>
           <span class="publish-time">{{ formatDate(item.publish_time) }}</span>

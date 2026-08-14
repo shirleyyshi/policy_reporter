@@ -1,21 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '@/views/Login.vue'
-import Home from '@/views/Home.vue'
-import CentralEditor from '@/views/CentralEditor.vue'
-import LocalEditor from '@/views/LocalEditor.vue'
-import LegalEditor from '@/views/LegalEditor.vue'
-import AgentRun from '@/views/AgentRun.vue'
-import AgentRuns from '@/views/AgentRuns.vue'
 
+// 路由懒加载：按需加载组件，减小首屏 bundle
 const routes = [
-    { path: '/', redirect: '/login' },  // 默认进入登录页
-    { path: '/login', name: 'Login', component: Login },
-    { path: '/home', name: 'Home', component: Home },
-    { path: '/editor/central', name: 'CentralEditor', component: CentralEditor },
-    { path: '/editor/local', name: 'LocalEditor', component: LocalEditor },
-    { path: '/editor/legal', name: 'LegalEditor', component: LegalEditor },
-    { path: '/agent', name: 'AgentRun', component: AgentRun },
-    { path: '/agent/runs', name: 'AgentRuns', component: AgentRuns },
+    { path: '/', redirect: '/login' },
+    { path: '/login', name: 'Login', component: () => import('@/views/Login.vue') },
+    { path: '/home', name: 'Home', component: () => import('@/views/Home.vue') },
+    { path: '/editor/central', name: 'CentralEditor', component: () => import('@/views/CentralEditor.vue') },
+    { path: '/editor/local', name: 'LocalEditor', component: () => import('@/views/LocalEditor.vue') },
+    { path: '/editor/legal', name: 'LegalEditor', component: () => import('@/views/LegalEditor.vue') },
+    { path: '/agent', name: 'AgentRun', component: () => import('@/views/AgentRun.vue') },
+    { path: '/agent/runs', name: 'AgentRuns', component: () => import('@/views/AgentRuns.vue') },
 ]
 
 const router = createRouter({
@@ -36,6 +30,3 @@ router.beforeEach((to, from, next) => {
 })
 
 export default router
-
-
-
