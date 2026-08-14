@@ -138,6 +138,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
 import api from '@/api'
+import { selectionStore } from '@/stores/selection'
 
 const router = useRouter()
 
@@ -161,10 +162,12 @@ const isMaxDate = computed(() => selectedDate.value >= todayStr)
 // 政策数据
 const central = ref([])
 const local = ref([])
-const centralSelectedIds = ref([])
-const localSelectedIds = ref([])
-const legalText = ref(localStorage.getItem('legalText') || '')
 const loading = ref(false)
+
+// 选择状态：从内存 store 读取（刷新即清空，不持久化）
+const centralSelectedIds = computed(() => selectionStore.centralIds)
+const localSelectedIds = computed(() => selectionStore.localIds)
+const legalText = computed(() => selectionStore.legalText)
 
 // 统计信息
 const centralCount = computed(() => central.value.length)
@@ -208,12 +211,6 @@ async function loadData(dateStr) {
     const res = await api.get('/api/policies/', { params: { date: dateStr } })
     central.value = res.data.central || []
     local.value = res.data.local || []
-
-    const savedCentral = JSON.parse(localStorage.getItem('centralSelectedIds') || '[]')
-    const savedLocal = JSON.parse(localStorage.getItem('localSelectedIds') || '[]')
-
-    centralSelectedIds.value = savedCentral.filter(id => central.value.find(c => c.id === id))
-    localSelectedIds.value = savedLocal.filter(id => local.value.find(l => l.id === id))
   } catch (err) {
     console.error('加载政策数据失败:', err)
     ElMessage.error('加载政策数据失败')
@@ -227,13 +224,6 @@ function goCentralEditor() { router.push('/editor/central') }
 function goLocalEditor() { router.push('/editor/local') }
 function goLegalEditor() { router.push('/editor/legal') }
 function goAgent() { router.push('/agent') }
-
-// 监听 localStorage 变化（编辑页保存后回首页能同步）
-window.addEventListener('storage', (e) => {
-  if (e.key === 'centralSelectedIds') centralSelectedIds.value = JSON.parse(e.newValue || '[]')
-  if (e.key === 'localSelectedIds') localSelectedIds.value = JSON.parse(e.newValue || '[]')
-  if (e.key === 'legalText') legalText.value = e.newValue || ''
-})
 
 // 导出日报
 async function exportReport() {
@@ -299,7 +289,7 @@ onMounted(() => {
 <style scoped>
 .home-container {
   min-height: 100vh;
-  padding: 32px 48px 60px;
+  padding: 20px 48px 32px;
   max-width: 1100px;
   margin: 0 auto;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
@@ -309,12 +299,12 @@ onMounted(() => {
 }
 
 /* 顶部品牌区 */
-.hero { margin-bottom: 32px; }
+.hero { margin-bottom: 16px; }
 .brand-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 10px;
 }
 .brand {
   display: flex;
@@ -343,12 +333,12 @@ onMounted(() => {
   gap: 8px;
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(0,229,255,0.2);
-  padding: 6px 14px 6px 6px;
+  padding: 4px 12px 4px 4px;
   border-radius: 20px;
 }
 .user-avatar {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: linear-gradient(135deg, #00e5ff, #2979ff);
   color: #0f2027;
@@ -356,22 +346,22 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 13px;
+  font-size: 12px;
 }
 .user-name { color: #e0f7fa; font-size: 13px; }
 
 .title {
   text-align: center;
   font-weight: 700;
-  font-size: 36px;
-  margin: 0 0 10px;
+  font-size: 30px;
+  margin: 0 0 4px;
   color: #00e5ff;
   letter-spacing: 3px;
   text-shadow: 0 0 20px rgba(0,229,255,0.3);
 }
 .slogan {
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
   color: #80deea;
   margin: 0;
   opacity: 0.85;
@@ -385,9 +375,9 @@ onMounted(() => {
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0,229,255,0.15);
-  border-radius: 12px;
-  padding: 14px 20px;
-  margin-bottom: 28px;
+  border-radius: 10px;
+  padding: 8px 16px;
+  margin-bottom: 14px;
 }
 .date-left {
   display: flex;
@@ -396,10 +386,10 @@ onMounted(() => {
 }
 .date-label {
   color: #b2ebf2;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
 }
-.date-picker { width: 180px; }
+.date-picker { width: 170px; }
 .date-quick { display: flex; gap: 4px; }
 .quick-btn {
   color: #80deea !important;
@@ -412,8 +402,8 @@ onMounted(() => {
 .card-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  margin-bottom: 36px;
+  gap: 12px;
+  margin-bottom: 18px;
 }
 @media (max-width: 640px) {
   .card-grid { grid-template-columns: 1fr; }
@@ -422,12 +412,12 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 22px 20px;
+  gap: 14px;
+  padding: 14px 16px;
   background: rgba(255,255,255,0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 14px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
@@ -445,19 +435,19 @@ onMounted(() => {
 .info-card.agent::before { background: linear-gradient(90deg, #ab47bc, transparent); }
 
 .info-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
   border-color: rgba(0,229,255,0.4);
   background: rgba(255,255,255,0.08);
 }
-.info-card.central:hover { box-shadow: 0 8px 24px rgba(0,229,255,0.25); }
-.info-card.local:hover { box-shadow: 0 8px 24px rgba(76,175,239,0.25); }
-.info-card.legal:hover { box-shadow: 0 8px 24px rgba(255,183,77,0.25); }
-.info-card.agent:hover { box-shadow: 0 8px 24px rgba(171,71,188,0.25); }
+.info-card.central:hover { box-shadow: 0 6px 18px rgba(0,229,255,0.25); }
+.info-card.local:hover { box-shadow: 0 6px 18px rgba(76,175,239,0.25); }
+.info-card.legal:hover { box-shadow: 0 6px 18px rgba(255,183,77,0.25); }
+.info-card.agent:hover { box-shadow: 0 6px 18px rgba(171,71,188,0.25); }
 
 .card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -470,37 +460,37 @@ onMounted(() => {
 
 .card-body { flex: 1; min-width: 0; }
 .card-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #b2ebf2;
-  margin: 0 0 6px;
+  margin: 0 0 4px;
 }
 .card-stat {
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   display: flex;
   align-items: baseline;
   gap: 4px;
 }
 .stat-num {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   color: #fff;
   line-height: 1;
 }
-.stat-unit { font-size: 13px; color: #80deea; }
-.stat-text { font-size: 18px; font-weight: 600; }
+.stat-unit { font-size: 12px; color: #80deea; }
+.stat-text { font-size: 16px; font-weight: 600; }
 .stat-text.done { color: #66bb6a; }
 .stat-text.pending { color: #ffb74d; }
 .stat-text.accent { color: #ab47bc; }
 .card-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: #80deea;
   margin: 0;
   opacity: 0.8;
 }
 
 .card-arrow {
-  font-size: 24px;
+  font-size: 22px;
   color: #80deea;
   opacity: 0.4;
   transition: all 0.3s;
@@ -513,7 +503,7 @@ onMounted(() => {
 /* 导出区 */
 .export-section {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 8px;
 }
 .glow-btn {
   background: linear-gradient(90deg, #00e5ff, #2979ff) !important;
@@ -521,8 +511,8 @@ onMounted(() => {
   box-shadow: 0 4px 16px rgba(0,229,255,0.4);
   color: #0f2027 !important;
   font-weight: 600 !important;
-  font-size: 15px !important;
-  padding: 12px 32px !important;
+  font-size: 14px !important;
+  padding: 10px 28px !important;
   height: auto !important;
   border-radius: 8px !important;
   transition: all 0.3s ease;
@@ -534,7 +524,7 @@ onMounted(() => {
 .glow-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .progress-container {
-  margin: 20px auto 0;
+  margin: 14px auto 0;
   width: 60%;
   max-width: 400px;
 }
@@ -542,8 +532,8 @@ onMounted(() => {
 /* 空状态 */
 .empty-hint {
   text-align: center;
-  margin-top: 40px;
-  padding: 24px;
+  margin-top: 20px;
+  padding: 18px;
   color: #80deea;
   background: rgba(255,255,255,0.03);
   border-radius: 12px;

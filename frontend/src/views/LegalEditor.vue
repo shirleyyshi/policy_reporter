@@ -45,19 +45,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { selectionStore } from '@/stores/selection'
 
 const router = useRouter()
-const legalInput = ref('')
-
-onMounted(() => {
-  legalInput.value = localStorage.getItem('legalText') || ''
+// 绑定到内存 store（刷新即清空）
+const legalInput = computed({
+  get: () => selectionStore.legalText,
+  set: (val) => { selectionStore.legalText = val }
 })
 
 function saveAndReturn() {
-  localStorage.setItem('legalText', legalInput.value.trim())
+  selectionStore.legalText = legalInput.value.trim()
   ElMessage.success('已保存合规资讯')
   router.push('/home')
 }

@@ -76,10 +76,15 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api'
 import { ElMessage } from 'element-plus'
+import { selectionStore } from '@/stores/selection'
 
 const router = useRouter()
 const policies = ref([])
-const selectedIds = ref([])
+// 绑定到内存 store（刷新即清空）
+const selectedIds = computed({
+  get: () => selectionStore.centralIds,
+  set: (val) => { selectionStore.centralIds = val }
+})
 const filterType = ref('')
 const selectedDate = ref(localStorage.getItem('selectedDate') || new Date().toISOString().split('T')[0])
 
@@ -109,7 +114,7 @@ function formatDate(dateStr) {
 
 function goBack(save) {
   if (save) {
-    localStorage.setItem('centralSelectedIds', JSON.stringify(selectedIds.value))
+    // 已通过 computed setter 实时写入 store，这里只提示
     ElMessage.success('已保存中央政策选择')
   }
   router.push('/home')
@@ -120,9 +125,8 @@ onMounted(async () => {
     const res = await api.get('/api/policies/', { params: { date: selectedDate.value } })
     policies.value = res.data.central || []
     // 只保留当前列表中存在的选中 id，避免"已选 > 总数"
-    const saved = JSON.parse(localStorage.getItem('centralSelectedIds') || '[]')
     const idSet = new Set(policies.value.map(p => p.id))
-    selectedIds.value = saved.filter(id => idSet.has(id))
+    selectionStore.centralIds = selectionStore.centralIds.filter(id => idSet.has(id))
   } catch (error) {
     console.error(error)
     ElMessage.error('加载中央政策失败')
