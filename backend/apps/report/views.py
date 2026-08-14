@@ -4,14 +4,13 @@ from rest_framework.response import Response
 from django.http import HttpResponse
 from .models import CentralPolicy, LocalPolicy
 from io import BytesIO
-from docx.shared import Pt, Inches, RGBColor
+from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx import Document
 from collections import defaultdict
 import datetime
-import requests
 from openai import OpenAI  # 使用 OpenAI SDK 兼容 DeepSeek
 from django.conf import settings
 
@@ -25,15 +24,6 @@ def set_font(run, font_name="微软雅黑", font_size=12, bold=False):
     run.font.size = Pt(font_size)
     run.bold = bold
     run._element.rPr.rFonts.set(qn("w:eastAsia"), font_name)
-
-
-def set_shading(run, fill="000000"):
-    rPr = run._element.get_or_add_rPr()
-    shd = OxmlElement('w:shd')
-    shd.set(qn('w:val'), 'clear')
-    shd.set(qn('w:color'), 'auto')
-    shd.set(qn('w:fill'), fill)
-    rPr.append(shd)
 
 
 def add_hyperlink(paragraph, url, text, font_name="微软雅黑", font_size=11):
@@ -86,40 +76,25 @@ def set_heading_font(paragraph, font_name="微软雅黑", font_size=14, bold=Tru
             set_font(run, font_name=font_name, font_size=font_size, bold=bold)
 
 
-def generate_docx(central, local, legal_text, output_stream, summary=None):
+def generate_docx(central, local, legal_text, output_stream, summary=None, report_date=None):
     doc = Document()
-    today_str = datetime.datetime.now().strftime("%Y.%m.%d")
+
+    # 标题日期：优先用调用方传入的日期（前端 selectedDate），否则回退到当天
+    if report_date:
+        # 兼容 "2025-08-01" / "2025-08-01T00:00:00" 等格式，统一成 YYYY.MM.DD
+        date_str_for_title = report_date[:10].replace("-", ".")
+    else:
+        date_str_for_title = datetime.datetime.now().strftime("%Y.%m.%d")
 
     # 摘要：若调用方传入预计算 summary（Agent 路径）则直接用；否则调 DeepSeek 生成（基线路径）
     if summary is None:
         policy_texts = [content for _, content, _, _ in central] + [content for _, content, _, _ in local]
         summary = call_deepseek_summarization(policy_texts)
 
-    # 手机提示
-    p1 = doc.add_paragraph()
-    run1 = p1.add_run("Zoom out to get a better view if you’re reading this newsletter from a smartphone")
-    set_font(run1, font_size=10)
-    run1.font.color.rgb = RGBColor(255, 255, 255)
-    set_shading(run1, fill="000000")
-    p1.alignment = WD_ALIGN_PARAGRAPH.LEFT
-
     # 主标题
-    h1 = doc.add_heading(f"每日财税日报（{today_str}）", 0)
+    h1 = doc.add_heading(f"每日财税日报（{date_str_for_title}）", 0)
     h1.alignment = WD_ALIGN_PARAGRAPH.CENTER
     set_heading_font(h1, font_size=20)
-
-    # 插入图片
-    try:
-        img_url = "https://s2.loli.net/2025/08/01/GPL8VlbaOEjNyQT.png"
-        resp = requests.get(img_url)
-        if resp.status_code == 200:
-            img_stream = BytesIO(resp.content)
-            p_img = doc.add_paragraph()
-            p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run_img = p_img.add_run()
-            run_img.add_picture(img_stream, width=Inches(6))
-    except Exception as e:
-        print("插图加载失败:", e)
 
     # 今日热点资讯
     h_today = doc.add_heading("今日热点资讯", level=1)
@@ -189,29 +164,30 @@ def generate_docx(central, local, legal_text, output_stream, summary=None):
         set_font(run, font_name="微软雅黑", font_size=11)
         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
-    # 插入两个空段落实现空两行
-    doc.add_paragraph()
+    # 空一行
     doc.add_paragraph()
 
     # 分割线
-    p_split = doc.add_paragraph("* * * * * * * * * *")
+    p_split = doc.add_paragraph("— — — — — — — — — —")
     p_split.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    set_font(p_split.runs[0], font_size=12)
+    if p_split.runs:
+        set_font(p_split.runs[0], font_size=10)
+        p_split.runs[0].font.color.rgb = RGBColor(150, 150, 150)
 
-    # 尾部黑底白字
-    footer_lines = [
-        f"Copyright © {datetime.datetime.now().year} 财税政策日报. All rights reserved.",
-        "",
-        "每日财税政策资讯",
-        "每个工作日推送最新财税法规信息。"
-    ]
-    for line in footer_lines:
-        p_footer = doc.add_paragraph()
-        run_footer = p_footer.add_run(line)
-        set_font(run_footer, font_size=10)
-        run_footer.font.color.rgb = RGBColor(255, 255, 255)
-        set_shading(run_footer, fill="000000")
-        p_footer.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    # 个人项目署名（不涉及版权声明，仅标注来源）
+    p_sign = doc.add_paragraph()
+    run_sign = p_sign.add_run(
+        f"本日报由 Policy Reporter 个人学习项目自动生成 · {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} 生成"
+    )
+    set_font(run_sign, font_size=9)
+    run_sign.font.color.rgb = RGBColor(150, 150, 150)
+    p_sign.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    p_disclaim = doc.add_paragraph()
+    run_disclaim = p_disclaim.add_run("内容仅供个人学习与研究参考，请以官方发布原文为准。")
+    set_font(run_disclaim, font_size=9)
+    run_disclaim.font.color.rgb = RGBColor(150, 150, 150)
+    p_disclaim.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     doc.save(output_stream)
 
@@ -243,6 +219,7 @@ def get_policies(request):
 def export_policies(request):
     selected = request.data.get('selected_ids', [])
     legal_text = request.data.get('legal_text', '').strip()
+    report_date = request.data.get('date')  # 前端 selectedDate，用于标题日期
 
     central_ids = [i['id'] for i in selected if i['source'] == "central"]
     local_ids = [i['id'] for i in selected if i['source'] == "local"]
@@ -251,7 +228,7 @@ def export_policies(request):
     local = LocalPolicy.objects.filter(id__in=local_ids).values_list('title', 'content', 'province', 'source_url')
 
     doc_io = BytesIO()
-    generate_docx(central, local, legal_text, doc_io)
+    generate_docx(central, local, legal_text, doc_io, report_date=report_date)
     doc_io.seek(0)
     return HttpResponse(doc_io.read(),
                         content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',

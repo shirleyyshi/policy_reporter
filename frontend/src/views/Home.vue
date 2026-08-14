@@ -249,7 +249,8 @@ async function exportReport() {
 
   const payload = {
     selected_ids,
-    legal_text: legalText.value.trim()
+    legal_text: legalText.value.trim(),
+    date: selectedDate.value
   }
 
   exporting.value = true
