@@ -2,8 +2,8 @@
 
 > 基于 ReAct 范式的财税政策日报自主 Agent — 输入一个日期，Agent 自动编排工具链生成政策日报 Word 文档。
 
-![CI](https://github.com/shirleyyyshi/policy_reporter/actions/workflows/test.yml/badge.svg)
-![Coverage](https://codecov.io/gh/shirleyyyshi/policy_reporter/branch/main/graph/badge.svg)
+![CI](https://github.com/shirleyyshi/policy_reporter/actions/workflows/test.yml/badge.svg)
+![Coverage](https://codecov.io/gh/shirleyyshi/policy_reporter/branch/main/graph/badge.svg)
 
 ## 技术栈
 
@@ -30,7 +30,7 @@
 
 ```bash
 # 1. 克隆项目
-git clone https://github.com/shirleyyyshi/policy_reporter.git
+git clone https://github.com/shirleyyshi/policy_reporter.git
 cd policy_reporter
 
 # 2. 配置环境变量
