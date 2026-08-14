@@ -202,11 +202,14 @@ class ExportPoliciesViewTest(TestCase):
 
     def test_export_returns_docx(self):
         """登录后导出应返回 docx 文件。"""
+        from unittest.mock import patch
         self.client.force_authenticate(user=self.user)
-        resp = self.client.post('/api/export/', {
-            'selected_ids': [{'id': self.central.id, 'source': 'central'}],
-            'legal_text': '合规资讯',
-        }, format='json')
+        # mock LLM 摘要调用，避免依赖真实 API key
+        with patch('report.views.call_deepseek_summarization', return_value='• 测试摘要'):
+            resp = self.client.post('/api/export/', {
+                'selected_ids': [{'id': self.central.id, 'source': 'central'}],
+                'legal_text': '合规资讯',
+            }, format='json')
         self.assertEqual(resp.status_code, 200)
         self.assertIn('wordprocessingml', resp['Content-Type'])
         self.assertGreater(len(resp.content), 0)
