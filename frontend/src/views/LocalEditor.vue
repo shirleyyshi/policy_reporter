@@ -1,45 +1,74 @@
 <template>
   <div class="editor-container">
-    <!-- 返回按钮 -->
-    <div class="btn-back">
-      <el-button class="glow-btn" type="primary" @click="goBack(false)">⬅ 不保存返回首页</el-button>
-      <el-button class="glow-btn" type="primary" @click="goBack(true)">💾 保存并返回首页</el-button>
-    </div>
+    <!-- 顶部导航条 -->
+    <header class="top-bar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span class="brand-name">地方政策编辑</span>
+      </div>
+      <div class="top-actions">
+        <el-button text class="text-btn" @click="goBack(false)">不保存返回</el-button>
+        <el-button class="save-btn" type="primary" @click="goBack(true)">
+          <span>💾 保存并返回</span>
+        </el-button>
+      </div>
+    </header>
 
-    <!-- 页面标题 -->
-    <h1 class="title centered">地方政策编辑</h1>
-
-    <!-- 筛选下拉框 -->
-    <div class="filter-container">
-      <span>筛选地区：</span>
-      <el-select v-model="filterProvince" placeholder="请选择地区" clearable style="width: 200px">
-        <el-option label="全部" value=""></el-option>
-        <el-option
+    <!-- 信息条 -->
+    <section class="info-bar">
+      <div class="info-left">
+        <span class="info-item">
+          <span class="info-label">日期</span>
+          <span class="info-value">{{ selectedDate }}</span>
+        </span>
+        <span class="info-divider"></span>
+        <span class="info-item">
+          <span class="info-label">总数</span>
+          <span class="info-value">{{ policies.length }} 条</span>
+        </span>
+        <span class="info-divider"></span>
+        <span class="info-item">
+          <span class="info-label">已选</span>
+          <span class="info-value accent">{{ selectedIds.length }} 条</span>
+        </span>
+      </div>
+      <div class="filter-container">
+        <span class="filter-label">地区</span>
+        <el-select v-model="filterProvince" placeholder="全部" clearable size="small" class="filter-select">
+          <el-option label="全部" value=""></el-option>
+          <el-option
             v-for="province in provinces"
             :key="province"
             :label="province"
             :value="province"
-        ></el-option>
-      </el-select>
+          ></el-option>
+        </el-select>
+      </div>
+    </section>
+
+    <!-- 分组卡片 -->
+    <div v-if="Object.keys(filteredGrouped).length === 0" class="empty-state">
+      <p>当前筛选下没有政策</p>
+      <p class="hint-sub">试试更换筛选条件或切换日期</p>
     </div>
 
-    <!-- 分组列表 -->
     <div v-for="(group, province) in filteredGrouped" :key="province" class="policy-group">
-      <h3>【{{ province }}】</h3>
-      <el-checkbox-group v-model="selectedIds">
-        <div class="checkbox-list">
-          <el-checkbox
-              v-for="item in group"
-              :key="item.id"
-              :label="item.id"
-              class="checkbox-item"
-          >
-            <div class="policy-row">
-              <span class="policy-title">{{ item.title }}</span>
-              <span class="publish-time">{{ formatDate(item.publish_time) }}</span>
-            </div>
+      <div class="group-header">
+        <span class="group-tag">{{ province }}</span>
+        <span class="group-count">{{ group.length }} 条</span>
+      </div>
+      <el-checkbox-group v-model="selectedIds" class="checkbox-list">
+        <label
+          v-for="item in group"
+          :key="item.id"
+          class="policy-item"
+          :class="{ checked: selectedIds.includes(item.id) }"
+        >
+          <el-checkbox :value="item.id" :label="item.id">
+            <span class="policy-title">{{ item.title }}</span>
           </el-checkbox>
-        </div>
+          <span class="publish-time">{{ formatDate(item.publish_time) }}</span>
+        </label>
       </el-checkbox-group>
     </div>
   </div>
@@ -54,15 +83,14 @@ import { ElMessage } from 'element-plus'
 const router = useRouter()
 const policies = ref([])
 const selectedIds = ref([])
-const filterProvince = ref('') // 当前筛选的省份
+const filterProvince = ref('')
+const selectedDate = ref(localStorage.getItem('selectedDate') || new Date().toISOString().split('T')[0])
 
-// 获取所有省份，用于下拉框
 const provinces = computed(() => {
   const set = new Set(policies.value.map(p => p.province))
   return Array.from(set).sort()
 })
 
-// 按省份分组
 const localGrouped = computed(() => {
   const groups = {}
   policies.value.forEach(item => {
@@ -72,7 +100,6 @@ const localGrouped = computed(() => {
   return groups
 })
 
-// 根据筛选条件生成分组
 const filteredGrouped = computed(() => {
   if (!filterProvince.value) return localGrouped.value
   const filtered = {}
@@ -82,14 +109,12 @@ const filteredGrouped = computed(() => {
   return filtered
 })
 
-// 格式化日期
 function formatDate(dateStr) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`
 }
 
-// 返回首页并保存
 function goBack(save) {
   if (save) {
     localStorage.setItem('localSelectedIds', JSON.stringify(selectedIds.value))
@@ -98,10 +123,9 @@ function goBack(save) {
   router.push('/home')
 }
 
-// 页面加载数据
 onMounted(async () => {
   try {
-    const res = await api.get('/api/policies', { params: { date: new Date().toISOString().split('T')[0] } })
+    const res = await api.get('/api/policies', { params: { date: selectedDate.value } })
     policies.value = res.data.local || []
     selectedIds.value = JSON.parse(localStorage.getItem('localSelectedIds') || '[]')
   } catch (error) {
@@ -114,41 +138,145 @@ onMounted(async () => {
 <style scoped>
 .editor-container {
   min-height: 100vh;
-  padding: 40px;
-  max-width: 900px;
+  padding: 24px 48px 60px;
+  max-width: 1100px;
   margin: 0 auto;
-  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   color: #e0f7fa;
-  font-family: 'Inter', sans-serif;
-}
-.centered { text-align: center; }
-.btn-back { display:flex; gap:12px; margin-bottom:20px; }
-
-.filter-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  font-weight: 500;
+  font-family: 'Inter', -apple-system, sans-serif;
+  box-sizing: border-box;
 }
 
-.checkbox-list { display:flex; flex-direction: column; gap:6px; }
-.checkbox-item { color:#d0e6fb; word-break:break-word; white-space:normal; }
-
-.policy-row {
+.top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0,229,255,0.15);
 }
-.policy-title { font-weight: 500; flex:1; margin-left: 8px; }
-.publish-time { font-size: 12px; color:#80deea; margin-left: 8px; white-space: nowrap; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #00e5ff;
+}
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00e5ff;
+  box-shadow: 0 0 12px #00e5ff;
+}
+.top-actions { display: flex; gap: 12px; align-items: center; }
+.text-btn { color: #80deea !important; }
+.text-btn:hover { color: #00e5ff !important; }
+.save-btn {
+  background: linear-gradient(90deg, #00e5ff, #2979ff) !important;
+  border: none !important;
+  color: #0f2027 !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0,229,255,0.3);
+}
+.save-btn:hover { box-shadow: 0 6px 18px rgba(0,229,255,0.5); transform: translateY(-1px); }
 
-.glow-btn {
-  background: linear-gradient(90deg,#00e5ff,#2979ff);
-  border:none; color:#fff; font-weight:600; padding:8px 20px; border-radius:6px;
+.info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(0,229,255,0.15);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
-.glow-btn:hover { box-shadow:0 0 20px #4cafef; transform:translateY(-2px); }
+.info-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.info-item { display: flex; align-items: center; gap: 6px; }
+.info-label { font-size: 12px; color: #80deea; }
+.info-value { font-size: 14px; color: #e0f7fa; font-weight: 500; }
+.info-value.accent { color: #00e5ff; font-weight: 700; }
+.info-divider { width: 1px; height: 14px; background: rgba(0,229,255,0.2); }
+.filter-container { display: flex; align-items: center; gap: 8px; }
+.filter-label { font-size: 12px; color: #80deea; }
+.filter-select { width: 140px; }
+
+.policy-group {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  background: rgba(0,229,255,0.06);
+  border-bottom: 1px solid rgba(0,229,255,0.12);
+}
+.group-tag {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00e5ff;
+  letter-spacing: 1px;
+}
+.group-count { font-size: 12px; color: #80deea; }
+
+.checkbox-list { display: flex; flex-direction: column; }
+.policy-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.policy-item:last-child { border-bottom: none; }
+.policy-item:hover { background: rgba(0,229,255,0.05); }
+.policy-item.checked { background: rgba(0,229,255,0.08); }
+.policy-title { color: #e0f7fa; font-size: 14px; flex: 1; }
+.publish-time {
+  font-size: 12px;
+  color: #80deea;
+  margin-left: 12px;
+  white-space: nowrap;
+  background: rgba(0,229,255,0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.policy-item :deep(.el-checkbox__label) { color: #e0f7fa; }
+.policy-item :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background: #00e5ff;
+  border-color: #00e5ff;
+}
+.policy-item :deep(.el-checkbox__inner) {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(0,229,255,0.3);
+}
+.policy-item :deep(.el-checkbox__input.is-checked + .el-checkbox__label) { color: #00e5ff; }
+
+.filter-select :deep(.el-input__wrapper) {
+  background: rgba(255,255,255,0.08) !important;
+  box-shadow: 0 0 0 1px rgba(0,229,255,0.2) inset !important;
+  border-radius: 6px !important;
+}
+.filter-select :deep(.el-input__inner) { color: #e0f7fa !important; }
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #80deea;
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+  border: 1px dashed rgba(0,229,255,0.2);
+}
+.hint-sub { font-size: 13px; color: #607d8b; margin-top: 6px; }
 </style>
-
-
