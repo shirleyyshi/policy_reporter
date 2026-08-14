@@ -54,11 +54,23 @@ def add_hyperlink(paragraph, url, text, font_name="微软雅黑", font_size=11):
 
 
 def call_deepseek_summarization(texts):
+    # 没有政策内容时直接返回空，不调用 API
+    if not texts:
+        return ""
+
+    # 摘要条数 = 政策条数，最多5条；1条政策就只生成1条摘要
+    target_count = min(len(texts), 5)
+    # 只取前 target_count 条政策内容送入 prompt
+    selected_texts = texts[:target_count]
+
     prompt = (
-            "假设你是一位财税专家，为公司管理层梳理每日日报热点。请阅读以下财税类政策内容，总结成每日热点资讯摘要，语言正式、简洁，适合放在财税简报的开头部分。"
-            "摘要应简洁明了、语言正式、中文撰写，控制在5条以内，每条20-35字。不需要标题或者“今日财税热点摘要：”之类的开头。"
-            "每条摘要前请加一个圆点（• ），并换行显示，禁止使用星号(*)、序号（如1. 2. 3.）或其他Markdown格式符号。仅返回纯文本，不要多余解释。\n\n"
-            + "\n\n".join(texts[:10])
+            "假设你是一位财税专家，为公司管理层梳理每日日报热点。"
+            f"请阅读以下{len(selected_texts)}条财税类政策内容，为每条政策生成1条摘要要点，共{target_count}条。"
+            "语言正式、简洁，适合放在财税简报的开头部分，每条20-35字。"
+            "不需要标题或者"今日财税热点摘要："之类的开头。"
+            "每条摘要前请加一个圆点（• ），并换行显示，禁止使用星号(*)、序号（如1. 2. 3.）或其他Markdown格式符号。"
+            f"必须且只能生成{target_count}条摘要，不要多生成也不要少生成。仅返回纯文本，不要多余解释。\n\n"
+            + "\n\n".join(selected_texts)
     )
     response = openai_client.chat.completions.create(
         model="deepseek-chat",

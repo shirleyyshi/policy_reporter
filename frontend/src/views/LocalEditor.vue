@@ -125,9 +125,12 @@ function goBack(save) {
 
 onMounted(async () => {
   try {
-    const res = await api.get('/api/policies', { params: { date: selectedDate.value } })
+    const res = await api.get('/api/policies/', { params: { date: selectedDate.value } })
     policies.value = res.data.local || []
-    selectedIds.value = JSON.parse(localStorage.getItem('localSelectedIds') || '[]')
+    // 只保留当前列表中存在的选中 id，避免"已选 > 总数"
+    const saved = JSON.parse(localStorage.getItem('localSelectedIds') || '[]')
+    const idSet = new Set(policies.value.map(p => p.id))
+    selectedIds.value = saved.filter(id => idSet.has(id))
   } catch (error) {
     console.error(error)
     ElMessage.error('加载地方政策失败')
