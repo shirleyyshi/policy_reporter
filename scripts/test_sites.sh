@@ -11,7 +11,7 @@ sites=(
     "中国人民银行|http://www.pbc.gov.cn/"
     "国家发改委|https://www.ndrc.gov.cn/"
     "广州市财政局|https://czj.gz.gov.cn/"
-    "广州市税务局|http://gz.gd-n-tax.gov.cn/"
+    "广东省税务局|http://guangdong.chinatax.gov.cn/"
 )
 
 for site in "${sites[@]}"; do
