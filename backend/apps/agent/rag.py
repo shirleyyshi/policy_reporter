@@ -8,6 +8,7 @@ RAG 检索封装：ChromaDB + 默认多语言 embedding（all-MiniLM-L6-v2）。
 4. id 格式：central_<id> / local_<id>（避免两类政策 id 冲突）
 5. 默认 embedding 模型多语言，中英文政策都能检索
 """
+import json
 import logging
 from pathlib import Path
 
@@ -151,7 +152,7 @@ def store_episodic_memory(run_id, date, summary, key_decisions):
         run_id: run 标识（作为文档 id，幂等避免重复存储）
         date: 任务日期
         summary: 本次 run 生成的摘要
-        key_decisions: list of str，工具调用序列（如 ['fetch_central', 'clean_policy', ...]）
+        key_decisions: list of dict，工具调用序列（如 [{'tool':'fetch_central','params':{...}}, ...]）
 
     Returns:
         bool: 是否存储成功
@@ -160,16 +161,26 @@ def store_episodic_memory(run_id, date, summary, key_decisions):
         return False
     try:
         col = _get_episodic_collection()
+        # key_decisions 是 dict 列表，序列化为可读字符串
+        if key_decisions:
+            decisions_str = ', '.join(
+                d.get('tool', '?') if isinstance(d, dict) else str(d)
+                for d in key_decisions
+            )
+        else:
+            decisions_str = '无'
         doc = (
             f"日期: {date}\n"
             f"摘要: {summary}\n"
-            f"工具调用序列: {', '.join(key_decisions) if key_decisions else '无'}"
+            f"工具调用序列: {decisions_str}"
         )
+        # metadatas 也存完整 key_decisions，便于精确复用
         col.upsert(
             documents=[doc],
             metadatas=[{
                 'run_id': str(run_id),
                 'date': str(date),
+                'key_decisions': json.dumps(key_decisions, default=str) if key_decisions else '[]',
             }],
             ids=[f"ep_{run_id}"],
         )
