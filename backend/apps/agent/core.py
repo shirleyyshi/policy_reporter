@@ -482,8 +482,11 @@ def _serialize_state(state: AgentState) -> dict:
     排除：trace（在 AgentTrace 表）、docx_bytes（落盘 media/agent_docx/）、
     human_input_callback（callable 不可序列化）、pending_question（瞬时）、
     task_input（AgentRun.task_input 单独字段）。
+
+    raw_policies/clean_policies 含 publish_time（datetime），
+    用 default=str 转 ISO 字符串，避免 Django JSONField 序列化报错。
     """
-    return {
+    data = {
         'raw_policies': state.raw_policies,
         'clean_policies': state.clean_policies,
         'summary': state.summary,
@@ -494,6 +497,8 @@ def _serialize_state(state: AgentState) -> dict:
         'last_actions': state.last_actions,
         'context_hints': state.context_hints,
     }
+    # datetime → ISO 字符串，确保 JSON 可序列化
+    return json.loads(json.dumps(data, default=str))
 
 
 def _deserialize_state(state: AgentState, data: dict, run: AgentRun):

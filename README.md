@@ -129,6 +129,22 @@ pip install -r requirements-dev.txt
 pytest --cov=apps --cov-report=term-missing
 ```
 
+## 消融实验（Ablation）
+
+4 组配置 × 4 场景 = 16 次 Agent 运行，验证每个组件的贡献度：
+
+| 配置 | 成功率 | 平均步数 | Critic 触发 | 修复率 | LLM-judge | 耗时 |
+|------|--------|----------|-------------|--------|-----------|------|
+| **baseline**（全开） | **75.0%** | 12.2 | 4.5 | 56.6% | **5.0** | 19.6s |
+| no_critic（关 Critic） | **25.0%** | 11.0 | 0.8 | 100.0% | 3.0 | 12.6s |
+| no_replanner（关 Replanner） | 75.0% | 10.8 | 3.5 | 76.2% | 4.0 | 17.2s |
+| no_stall（关停滞检测） | 75.0% | 10.2 | 2.8 | 75.0% | 4.0 | 15.9s |
+
+**关键结论**：
+- **Critic 是核心组件**：关掉后成功率从 75% 暴跌到 25%，LLM-judge 从 5.0 降到 3.0
+- **Critic 必须配套 Replanner**：no_replanner 配置下 Critic 仍触发 3.5 次，修复率从 56.6% 升到 76.2%（Critic 诊断后 Replanner 才能转化修复）
+- **停滞检测节省步数**：no_stall 平均 10.2 步 vs baseline 12.2 步，但成功率不变（停滞检测主要避免浪费步数，不影响最终质量）
+
 ## 项目结构
 
 ```
