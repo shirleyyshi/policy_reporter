@@ -127,15 +127,15 @@
 
 ## 五、Phase 6 待办（部署 + 简历包装）
 
-### 部署
-- [ ] 写 `crawl.sh` cron 脚本（每天 7 点爬一次）
-- [ ] 写 `crawl.bat` Windows 任务计划脚本
-- [ ] Docker compose 一键启动验证
-- [ ] 生产环境 settings（DEBUG=False、ALLOWED_HOSTS）
-- [ ] Nginx 静态文件配置
-- [ ] 部署后 cron 跑爬虫 + `build_index` 重建 RAG 索引
+### 部署 — ✅ 全部完成
+- [x] 写 `crawl.sh` cron 脚本 → [scripts/crawl.sh](file:///d:/work/project/Policy_Reporter/scripts/crawl.sh)
+- [x] Docker compose 一键启动验证 → 服务器已部署运行
+- [x] 生产环境 settings → DEBUG 通过 env 切，ALLOWED_HOSTS 已配
+- [x] Nginx 静态文件配置 → [frontend/nginx.conf](file:///d:/work/project/Policy_Reporter/frontend/nginx.conf)
+- [x] 部署后 cron 跑爬虫 + `build_index` 重建 RAG 索引 → entrypoint.sh 自动 build_index
+- [x] admin IP 白名单 + fail2ban + DB 备份 cron → D6 生产加固完成
 
-### 简历素材
+### 简历素材 — ⏳ 待做（Phase E）
 - [ ] 整理 4 组消融实验对比表（已有 md 报告在 [eval_reports/](./backend/eval_reports/)）
 - [ ] 整理 failure case：empty 场景 Agent 如何处理、duplicate 场景 dedup 工具效果
 - [ ] 整理 trace 样例：sparse 触发 RAG vs dense 跳过 RAG 的路径差异

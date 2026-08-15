@@ -332,9 +332,7 @@
 
 ---
 
-## Phase B：本地 docker-compose 跑通验证
-
-**目标**：本地一键 `docker-compose up -d` 三容器起来，爬虫能跑，Agent 能 run。
+## Phase B：本地 docker-compose 跑通验证（⏭️ 已跳过，合并到 D3 服务器验证）
 **预估工作量**：半天
 **前置依赖**：Phase A 完成（否则多 worker 下 agent 跑不起来）
 **复核结论（2026-08-14）**：B1 配置就绪 ✅；B2 配置层就绪但实际未跑过验证 🟡；B3/B4 待用户执行。**注意：在 A2 完成前跑 docker-compose，agent 会在多 worker 下崩。**

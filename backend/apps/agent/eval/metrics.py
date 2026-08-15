@@ -20,6 +20,7 @@ from openai import OpenAI
 
 from agent.models import AgentTrace
 from agent.core import get_state, get_docx
+from agent.utils import has_docx_trace
 
 logger = logging.getLogger(__name__)
 
@@ -83,14 +84,7 @@ def success(run_id) -> bool:
     status = (last.output or {}).get('status', 'failed')
     if status != 'done':
         return False
-    return _has_docx_trace(run_id)
-
-
-def _has_docx_trace(run_id) -> bool:
-    """DB trace 中是否有成功的 format_docx 调用。"""
-    return AgentTrace.objects.filter(
-        run_id=run_id, tool='format_docx'
-    ).exclude(output__has_key='error').exists()
+    return has_docx_trace(run_id)
 
 
 def status(run_id) -> str:
@@ -161,7 +155,7 @@ def has_docx(run_id) -> bool:
     state = get_state(run_id)
     if state and state.docx_bytes:
         return True
-    return _has_docx_trace(run_id)
+    return has_docx_trace(run_id)
 
 
 def get_summary(run_id) -> str:

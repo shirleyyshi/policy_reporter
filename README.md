@@ -26,6 +26,79 @@
 - **RAG episodic memory**：跨会话经验复用，第二次运行参考历史决策
 - **LLM-as-judge 评估**：format / coverage / language 三维无参考打分 + 4 组消融实验
 
+## 架构图
+
+```mermaid
+graph TB
+    subgraph 前端["Vue 3 + Element Plus"]
+        UI[首页/编辑页]
+        AgentUI[Agent 运行页<br/>trace 可视化 + 人在回路弹窗]
+    end
+
+    subgraph 后端["Django + DRF + gunicorn"]
+        API[REST API<br/>JWT 认证]
+        AgentEngine[ReAct Agent 引擎]
+        Crawler[政策爬虫<br/>requests + lxml]
+        Export[docx 导出]
+    end
+
+    subgraph Agent内核["ReAct 三角色"]
+        Actuator[Actuator<br/>每步 LLM 决策]
+        Critic[Critic<br/>每 N 步质量检查]
+        Terminator[Terminator<br/>代码硬终止]
+    end
+
+    subgraph 工具层["10 个工具"]
+        T1[fetch_central/local<br/>读 DB]
+        T2[clean_policy<br/>去 HTML]
+        T3[deduplicate<br/>标题相似度去重]
+        T4[classify_policy<br/>DB 元数据分类]
+        T5[summarize<br/>DeepSeek 摘要]
+        T6[rag_search<br/>ChromaDB 检索]
+        T7[format_docx<br/>生成 Word]
+        T8[ask_human<br/>人在回路]
+    end
+
+    subgraph 数据层["数据持久化"]
+        MySQL[(MySQL 8.0<br/>政策数据)]
+        Chroma[(ChromaDB<br/>向量索引 + episodic memory)]
+        Docx[(media/agent_docx/<br/>Word 文件)]
+        AgentRun[(AgentRun 表<br/>state 快照)]
+    end
+
+    subgraph LLM["大模型"]
+        DeepSeek[DeepSeek-chat<br/>国产大模型]
+    end
+
+    UI -->|HTTP| API
+    AgentUI -->|2s 轮询| API
+    API --> AgentEngine
+    API --> Export
+    Crawler -->|Django ORM| MySQL
+
+    AgentEngine --> Actuator
+    AgentEngine --> Critic
+    AgentEngine --> Terminator
+
+    Actuator -->|调用| T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8
+    Actuator -->|structured output| DeepSeek
+    Critic -->|评估| DeepSeek
+    T5 -->|摘要| DeepSeek
+
+    T1 --> MySQL
+    T6 --> Chroma
+    T7 --> Docx
+    AgentEngine -->|save_state| AgentRun
+    T8 -->|threading.Event| AgentUI
+
+    style 前端 fill:#1a1a2e,color:#e0e0e0
+    style 后端 fill:#16213e,color:#e0e0e0
+    style Agent内核 fill:#0f3460,color:#e0e0e0
+    style 工具层 fill:#533483,color:#e0e0e0
+    style 数据层 fill:#1a1a2e,color:#e0e0e0
+    style LLM fill:#e94560,color:#ffffff
+```
+
 ## 快速开始
 
 ```bash

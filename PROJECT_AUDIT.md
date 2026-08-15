@@ -7,6 +7,41 @@
 
 ---
 
+## 修复状态更新（2026-08-16）
+
+> 以下问题已在后续开发中修复，面试时无需担心。
+
+| # | 原问题 | 修复状态 | 修复证据 |
+|---|--------|----------|----------|
+| P0-1 | run_eval --all-ablations 崩溃 | ✅ 已修 | [run_eval.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/run_eval.py) 补 return |
+| P0-2 | metrics.py 模块级 OpenAI 初始化 | ✅ 已修 | [metrics.py:31](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/metrics.py) 改懒加载 `_get_judge_client()` |
+| P0-3 | get_summary 死代码 | ✅ 已修 | [metrics.py:161](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/metrics.py) 三层 fallback + 截断标记 |
+| P0-4 | TIME_ZONE = UTC | ✅ 已修 | [settings.py](file:///d:/work/project/Policy_Reporter/backend/config/settings.py) 改 Asia/Shanghai |
+| P0-5 | 无 STATIC_ROOT/MEDIA_ROOT | ✅ 已修 | [settings.py](file:///d:/work/project/Policy_Reporter/backend/config/settings.py) 已配置 |
+| P1-6 | Dockerfile 用 runserver | ✅ 已修 | [entrypoint.sh](file:///d:/work/project/Policy_Reporter/backend/entrypoint.sh) 改 gunicorn 3 workers |
+| P1-7 | docker-compose 无 media 卷 | ✅ 已修 | [docker-compose.yml](file:///d:/work/project/Policy_Reporter/docker-compose.yml) 加 backend_media 卷 |
+| P1-8 | SECRET_KEY 有默认值 | ✅ 已修 | [docker-compose.yml](file:///d:/work/project/Policy_Reporter/docker-compose.yml) 用 `${VAR:?}` 强制读 .env |
+| P1-9 | 爬虫 max-pages 假参数 | ✅ 已修 | [crawl_policies.py](file:///d:/work/project/Policy_Reporter/backend/apps/report/management/commands/crawl_policies.py) 实现翻页 + 时区修复 + list_failed |
+| P1-10 | report 模块零测试 | ✅ 已修 | [report/tests.py](file:///d:/work/project/Policy_Reporter/backend/apps/report/tests.py) 21 个测试 |
+| P1-11 | permission_classes 不一致 | ✅ 已修 | [report/views.py](file:///d:/work/project/Policy_Reporter/backend/apps/report/views.py) 4 个端点均显式声明 |
+| P1-12 | testset 硬编码日期 | ✅ 已修 | [testset.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/testset.py) 改 DB 自动发现 |
+| P1-13 | report/admin.py 重复 import | ✅ 已修 | 已删除 |
+| P2-14 | success_rate 分母 | ✅ 已修 | [runner.py:205](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/runner.py) 改 len(results) |
+| P2-15~19 | 前端 P2 瑕疵 | ✅ 已修 | Home.vue/CentralEditor/api/router 全修 |
+| P2-22 | runner config_name 反向推断 | ✅ 已修 | [runner.py:47](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/runner.py) 改显式传入 |
+| P2-23 | fetch 工具无 DB 测试 | ✅ 已修 | [test_core.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/test_core.py) FetchToolsTest 6 个测试 |
+| P2-24 | frontend/README.md Vite 模板 | ✅ 已修 | 替换为项目定制文档 |
+
+**额外加固**（audit 未列但已完成）：
+- LLM 调用指数退避重试（[core.py:66](file:///d:/work/project/Policy_Reporter/backend/apps/agent/core.py) `_call_llm_with_retry`）
+- episodic memory 存完整 (tool, params) 而非仅工具名（[core.py:348](file:///d:/work/project/Policy_Reporter/backend/apps/agent/core.py)）
+- `_has_docx_trace` 抽到 [agent/utils.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/utils.py) 消除重复定义
+- admin IP 白名单中间件（[config/middleware.py](file:///d:/work/project/Policy_Reporter/backend/config/middleware.py)）
+- GitHub Actions CI（[.github/workflows/test.yml](file:///d:/work/project/Policy_Reporter/.github/workflows/test.yml)）
+- fail2ban + docker log rotation + DB 备份 cron（D6 生产加固）
+
+---
+
 ## 一、项目整体评价（结论先行）
 
 宝宝这个项目作为面试项目是 **有真实硬实力底子的**，不是"玩具 demo"。亮点和短板同样明显：

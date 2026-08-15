@@ -16,6 +16,7 @@ Agent 主循环（ReAct）。
 """
 import json
 import uuid
+import time
 import logging
 import threading
 from datetime import datetime
@@ -57,11 +58,34 @@ _HUMAN_ANSWERS = {}  # run_id_str → answer string（API 线程提交答案）
 _DOCX_DIR = Path(settings.BASE_DIR) / 'media' / 'agent_docx'
 _DOCX_DIR.mkdir(parents=True, exist_ok=True)
 
+# LLM 调用重试配置（应对 DeepSeek 限流/网络抖动）
+LLM_MAX_RETRIES = 3
+LLM_RETRY_BASE_DELAY = 1.0  # 首次重试等待 1s，之后 2s、4s（指数退避）
+
+
+def _call_llm_with_retry(fn, *args, **kwargs):
+    """包装 LLM 调用，失败时指数退避重试。
+
+    用于 _call_actuator / _call_critic，避免 DeepSeek 限流导致整个 run 失败。
+    """
+    last_exc = None
+    for attempt in range(LLM_MAX_RETRIES):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            last_exc = e
+            if attempt < LLM_MAX_RETRIES - 1:
+                delay = LLM_RETRY_BASE_DELAY * (2 ** attempt)
+                logger.warning(f"LLM 调用失败（第 {attempt+1}/{LLM_MAX_RETRIES} 次），{delay}s 后重试: {e}")
+                time.sleep(delay)
+    raise last_exc
+
 
 def _call_actuator(state, replan_hint=None):
     """调 Actuator LLM，返回解析后的 dict。"""
     user_prompt = build_step_prompt(state, MAX_STEPS, replan_hint)
-    response = _openai_client.chat.completions.create(
+    response = _call_llm_with_retry(
+        _openai_client.chat.completions.create,
         model="deepseek-chat",
         messages=[
             {"role": "system", "content": ACTUATOR_SYSTEM},
@@ -86,7 +110,8 @@ def _call_actuator(state, replan_hint=None):
 def _call_critic(state):
     """调 Critic LLM，返回 {needs_replan, replan_hint}。"""
     user_prompt = build_critic_prompt(state)
-    response = _openai_client.chat.completions.create(
+    response = _call_llm_with_retry(
+        _openai_client.chat.completions.create,
         model="deepseek-chat",
         messages=[
             {"role": "system", "content": CRITIC_SYSTEM},
@@ -344,8 +369,12 @@ def _run_loop(run_id, state, config=None):
     # A3: 存 episodic memory（仅成功 run 且有 summary 时，避免 failed run 污染经验库）
     if state.status == "done" and state.summary:
         date = state.task_input.get('date', '')
-        # key_decisions 取工具调用序列（last_actions 的 tool 名）
-        key_decisions = [a[0] for a in state.last_actions if isinstance(a, tuple) and len(a) >= 1]
+        # key_decisions 取完整 (tool, params) 序列，供下次 run 复用工具调用策略
+        key_decisions = [
+            {"tool": a[0], "params": a[1]}
+            for a in state.last_actions
+            if isinstance(a, tuple) and len(a) >= 2
+        ]
         store_episodic_memory(run_id, date, state.summary, key_decisions)
 
     # 最终状态持久化（done/failed 时确保 DB 记录最终 status + step）

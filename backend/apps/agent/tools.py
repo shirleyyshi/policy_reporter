@@ -266,7 +266,7 @@ TOOLS_DESCRIPTION = """
 4. deduplicate() - 标题相似度+URL 去重，无需参数
 5. classify_policy() - 用 DB 元数据分类（type/province），无需参数
 6. summarize() - 生成 ≤5 条热点摘要（LLM），无需参数
-7. rag_search(query) - 检索历史相似政策（当前返回空）
+7. rag_search(query) - 检索历史相似政策（ChromaDB 向量检索，返回 top 3）
 8. save_to_db() - 持久化（当前 stub，fetch 已落库）
 9. format_docx() - 生成最终 docx，需 summary 已就绪，无需参数
 10. ask_human(question, options) - 遇到不确定时求助（当前 mock 同步返回）

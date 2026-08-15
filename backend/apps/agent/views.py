@@ -18,6 +18,7 @@ from rest_framework import status as http_status
 
 from .core import run_agent_async, get_state, get_docx, submit_answer
 from .models import AgentTrace
+from .utils import has_docx_trace
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,6 @@ def _infer_status(run_id):
     if 'done' in reasoning or 'finish' in reasoning or 'actuator' in reasoning:
         return 'done'
     return 'failed'
-
-
-def _has_docx_trace(run_id):
-    """从 DB trace 判断该 run 是否成功产出了 docx。"""
-    return AgentTrace.objects.filter(
-        run_id=run_id, tool='format_docx'
-    ).exclude(output__has_key='error').exists()
 
 
 @api_view(['POST'])
@@ -110,7 +104,7 @@ def agent_trace(request, run_id):
         run_status = _infer_status(run_id)
         step = traces.last().step
         state_summary = None
-        docx_available = _has_docx_trace(run_id)
+        docx_available = has_docx_trace(run_id)
     return Response({
         'run_id': str(run_id),
         'status': run_status,
@@ -176,7 +170,7 @@ def agent_runs_list(request):
     )
     result = []
     for r in runs:
-        has_docx_trace = _has_docx_trace(r['run_id'])
+        has_docx_trace = has_docx_trace(r['run_id'])
         state = get_state(r['run_id'])
         status = state.status if state else _infer_status(r['run_id'])
         result.append({
