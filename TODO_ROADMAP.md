@@ -4,12 +4,13 @@
 > 任何人接手（你自己或 AI 助手）都应严格按本文档顺序执行。
 > 完成一项划掉一项，不要跳步。
 >
-> 更新日期：2026-08-15（第四轮更新：C1+C2 完成，覆盖率突破 80%）
+> 更新日期：2026-08-15（第五轮更新：C3 GitHub Actions CI 完成，双 remote 镜像推送）
 > 第一轮进度（2026-07-20）：P0 + P1 全部修完，42 个测试全过，docker-compose 配置语法正确。
 > 第二轮复核结论：P0/P1 修复已落地核实；Phase A 全未动；Phase B 配置就绪待运行验证；Phase C 仅 report 测试补完；Phase D 仅 cron 脚本写完；Phase E 未开始。
 > 第二轮修复（2026-08-14）：A1（Observation 三元组）+ A2（AgentRun state 持久化）+ A3（RAG episodic memory）已完成，55 个测试全过，Phase A 全部打通。
 > 第三轮调整（2026-08-14）：本地 Docker Desktop 因 sandbox 限制无法启动，Phase B 本地验证跳过，合并到 Phase D 服务器验证；Phase D 改为"服务器 IP 不买域名"方案（HR 任何网络可访问，无 HTTPS），D4 降级为可选。
 > 第四轮更新（2026-08-15）：Phase D 主体完成（服务器已部署运行，数据已入库，前端可访问）；前端 P2 瑕疵 #15-19 全部修复；C1 工具链搭建完成（pytest+coverage，55 测试，46% 覆盖率）；C2 测试补全完成（179 测试，82% 覆盖率，突破 80% 目标）；数据提取 bug 修复（导出标题日期/摘要条数/选择交集）。
+> 第五轮更新（2026-08-15）：C3 GitHub Actions CI 完成——workflow test.yml 含 backend-test(SQLite+pytest --cov-fail-under=80)+frontend-build(npm ci+build) 两个 job；README 加 CI+Coverage badge；配置双 remote（origin=Gitee / github=GitHub），commit fbea466 已推两边；README badge 用户名修正为 GitHub 账号 shirleyyshi（2个y）。
 
 ---
 
@@ -24,7 +25,7 @@
 | B2-B4 | 本地验证 | ⏭️ 跳过 | 合并到 D3 服务器验证，服务器已部署运行 |
 | C1 | 装 pytest + coverage | ✅ 已完成 | [requirements-dev.txt](file:///d:/work/project/Policy_Reporter/backend/requirements-dev.txt) pytest 工具链；[pytest.ini](file:///d:/work/project/Policy_Reporter/backend/pytest.ini) 配置；[conftest.py](file:///d:/work/project/Policy_Reporter/backend/conftest.py) 共享 fixtures；55 测试全过，覆盖率 46% |
 | C2 | 补测试到 80% | ✅ 已完成 | [test_core.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/test_core.py) 16 测试 + [test_eval.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/test_eval.py) 42 测试 + [test_views.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/test_views.py) 35 测试 + [test_prompts.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/test_prompts.py) 15 测试 + [test_rag.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/test_rag.py) 16 测试；179 测试全过，覆盖率 **82%** |
-| C3 | GitHub Actions CI | ❌ 未做 | 项目根无 .github/workflows 目录 |
+| C3 | GitHub Actions CI | ✅ 已完成 | [.github/workflows/test.yml](file:///d:/work/project/Policy_Reporter/.github/workflows/test.yml) backend-test(SQLite+pytest --cov-fail-under=80)+frontend-build(npm ci+build)；双 remote 镜像：origin=Gitee(shirleyyyshi) / github=GitHub(shirleyyshi)；[README.md](file:///d:/work/project/Policy_Reporter/README.md) CI+Coverage badge 已加；commit fbea466 已推两边 |
 | D1-D3 | 服务器部署 | ✅ 已完成 | 新加坡云服务器已部署，docker-compose 三容器运行，数据已入库，前端可访问，gunicorn 3 workers 下 agent 正常 |
 | D4 | 配 HTTPS | ⏭️ 暂跳过 | 不买域名方案，用 IP 访问无 HTTPS，浏览器提示"不安全"但功能正常 |
 | D5 | cron 定时爬虫 | ✅ 已做 | [scripts/crawl.sh](file:///d:/work/project/Policy_Reporter/scripts/crawl.sh) + [crawl.bat](file:///d:/work/project/Policy_Reporter/scripts/crawl.bat) 已写好 |
@@ -1088,7 +1089,7 @@ class SummarizeToolTest(TestCase):
 | B1-B4 | 本地验证 | ⏭️ 跳过 | — | — | 合并到 D3 |
 | C1 | 装 pytest + coverage | ✅ 已完成 | — | — | ~~必做~~ |
 | C2 | 补测试到 80% | ✅ 已完成（82%） | — | C1 | ~~必做~~ |
-| **C3** | **GitHub Actions CI** | **❌ 未做** | **2 小时** | C2 | **🔴 当前首选** |
+| **C3** | **GitHub Actions CI** | **✅ 已完成** | — | C2 | ~~必做~~ |
 | D1-D3 | 服务器部署 | ✅ 已完成 | — | — | ~~必做~~ |
 | D4 | 配 HTTPS | ⏭️ 暂跳过 | — | — | 未来增强 |
 | D5 | cron 定时爬虫 | ✅ 已做 | — | — | ~~推荐~~ |
@@ -1097,11 +1098,11 @@ class SummarizeToolTest(TestCase):
 | 数据/爬虫 | 政策数据量少 | ⏸️ 待讨论 | — | — | 用户后续讨论 |
 | **E1-E4** | **简历素材** | **❌ 未做** | **1-2 天** | D3 | **🟡 后期** |
 
-**剩余工作量**：约 2-3 个工作日（C3 2小时 + D6 2小时 + 后端 P2 1小时 + Phase E 1-2天）
+**剩余工作量**：约 1-2 个工作日（D6 2小时 + 后端 P2 1小时 + Phase E 1-2天）
 
-**关键路径**：~~A → B → D3 → C1 → C2~~ → **C3 → D6 → E**
+**关键路径**：~~A → B → D3 → C1 → C2 → C3~~ → **D6 → E**
 
-**当前进度**：核心功能 100% 完成，测试 82% 覆盖率，服务器已上线运行。剩余都是锦上添花项。
+**当前进度**：核心功能 100% 完成，测试 82% 覆盖率，CI 已配置，服务器已上线运行。剩余都是锦上添花项。
 
 **可并行项**：
 - E4 架构图任何时候都能画
@@ -1115,7 +1116,7 @@ class SummarizeToolTest(TestCase):
 完成所有必做项后，逐条勾选验证：
 
 - [x] `pytest --cov=apps` 覆盖率 ≥ 80%（实际 82%，179 测试）
-- [ ] GitHub Actions CI 绿色 badge
+- [ ] GitHub Actions CI 绿色 badge — workflow 已配置并推 GitHub，待用户在 Actions 页面确认首次运行通过（仓库私有无法自动核验）
 - [x] 服务器 `docker-compose up -d` 三容器全 Up
 - [x] 能登录、爬数据、跑 agent、下载 docx
 - [x] 重启 docker 后 AgentRun 状态不丢（验证 A2）— 单元测试已验证 save_state/get_state 跨 cache 恢复
@@ -1127,7 +1128,7 @@ class SummarizeToolTest(TestCase):
 - [ ] cron 每天 7:00 自动爬虫（脚本已写，待服务器注册 crontab）
 - [ ] 简历素材包齐全（卡片 + 话术 + 视频 + 架构图）
 
-**当前进度：12/15 项完成（80%）。剩余 3 项：CI badge、A3 端到端验证、简历素材。**
+**当前进度：13/15 项完成（87%）。剩余 2 项：A3 端到端验证、简历素材。CI badge 待用户在 Actions 页面确认首次运行绿色。**
 
 ---
 
