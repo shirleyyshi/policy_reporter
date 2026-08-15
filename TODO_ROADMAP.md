@@ -885,41 +885,27 @@ class SummarizeToolTest(TestCase):
 
 ---
 
-### D6. 生产环境加固（可选但推荐） ❌ 未做
+### D6. 生产环境加固（可选但推荐） 🟡 部分完成
 
-**复核证据**：[settings.py](file:///d:/work/project/Policy_Reporter/backend/config/settings.py) 无 ADMIN_ALLOWED_IPS 配置；项目无 fail2ban/备份 cron 配置。
+**复核结论（2026-08-15）**：#1 admin IP 白名单代码层已完成 ✅（中间件 + settings + .env.example）；#2/#3/#4 需在服务器执行命令，待用户操作。
+**复核证据**：[config/middleware.py](file:///d:/work/project/Policy_Reporter/backend/config/middleware.py) admin_ip_whitelist 中间件；[settings.py:55-68](file:///d:/work/project/Policy_Reporter/backend/config/settings.py) 注册中间件 + ADMIN_ALLOWED_IPS 配置；[.env.example:24-27](file:///d:/work/project/Policy_Reporter/.env.example) 环境变量说明。
 
 **具体步骤**：
 
-1. **禁用 Django admin 公网访问**：在 [config/urls.py](file:///d:/work/project/Policy_Reporter/backend/config/urls.py) 加 IP 白名单中间件：
-   ```python
-   # config/middleware.py（新建）
-   from django.conf import settings
-   from django.http import HttpResponseForbidden
+1. **禁用 Django admin 公网访问** ✅ 代码层已完成：
+   - [config/middleware.py](file:///d:/work/project/Policy_Reporter/backend/config/middleware.py) `admin_ip_whitelist` 中间件（拦截 /admin/，支持 X-Forwarded-For 取真实 IP，空白名单=开发环境放行）
+   - [settings.py:55-68](file:///d:/work/project/Policy_Reporter/backend/config/settings.py) 注册中间件 + `ADMIN_ALLOWED_IPS = env.list('ADMIN_ALLOWED_IPS', default=[])`
+   - [.env.example:24-27](file:///d:/work/project/Policy_Reporter/.env.example) 环境变量说明
+   - **服务器操作**：编辑服务器 `.env`，填 `ADMIN_ALLOWED_IPS=你的家庭IP`（查公网 IP：`curl -s ifconfig.me`），然后 `docker compose up -d --build backend` 重启
 
-   def admin_ip_whitelist(get_response):
-       def middleware(request):
-           if request.path.startswith('/admin/') and not request.path.startswith('/admin/login/'):
-               allowed_ips = getattr(settings, 'ADMIN_ALLOWED_IPS', [])
-               if allowed_ips and request.META.get('REMOTE_ADDR') not in allowed_ips:
-                   return HttpResponseForbidden()
-           return get_response(request)
-       return middleware
-   ```
-   settings.py 中加：
-   ```python
-   ADMIN_ALLOWED_IPS = ['你的家庭IP']  # 或用 SSH 隧道访问
-   MIDDLEWARE = ['config.middleware.admin_ip_whitelist'] + MIDDLEWARE
-   ```
-
-2. **加 fail2ban 防 SSH 暴力破解**：
+2. **加 fail2ban 防 SSH 暴力破解**（服务器执行）：
    ```bash
    sudo apt install -y fail2ban
    sudo systemctl enable fail2ban
    sudo systemctl start fail2ban
    ```
 
-3. **加 docker log rotation**：编辑 `/etc/docker/daemon.json`：
+3. **加 docker log rotation**（服务器执行）：编辑 `/etc/docker/daemon.json`：
    ```json
    {
      "log-driver": "json-file",
@@ -931,7 +917,7 @@ class SummarizeToolTest(TestCase):
    ```
    重启 docker：`sudo systemctl restart docker`
 
-4. **数据库自动备份**：加 cron 每天备份 DB：
+4. **数据库自动备份**（服务器执行）：加 cron 每天备份 DB：
    ```cron
    0 3 * * * docker compose exec -T db mysqldump -u root -p$DB_ROOT_PASSWORD policy_db | gzip > /opt/backups/policy_db_$(date +\%Y\%m\%d).sql.gz
    ```
@@ -939,9 +925,11 @@ class SummarizeToolTest(TestCase):
    ```cron
    0 4 * * * find /opt/backups -name "*.sql.gz" -mtime +7 -delete
    ```
+   注意：需先 `mkdir -p /opt/backups` 并在 cron 行里替换 `$DB_ROOT_PASSWORD` 为实际密码。
 
 **验证标准**：
-- 从其他 IP 访问 `/admin/` 返回 403
+- ✅ 代码层：`python manage.py check` 0 issues
+- 从其他 IP 访问 `/admin/` 返回 403（需服务器配 .env 的 ADMIN_ALLOWED_IPS）
 - fail2ban status 显示正常
 - 备份目录有 .sql.gz 文件
 
@@ -1093,7 +1081,7 @@ class SummarizeToolTest(TestCase):
 | D1-D3 | 服务器部署 | ✅ 已完成 | — | — | ~~必做~~ |
 | D4 | 配 HTTPS | ⏭️ 暂跳过 | — | — | 未来增强 |
 | D5 | cron 定时爬虫 | ✅ 已做 | — | — | ~~推荐~~ |
-| **D6** | **生产加固** | **❌ 未做** | **2 小时** | D3 | **🟡 推荐** |
+| **D6** | **生产加固** | **🟡 部分完成** | **1 小时** | D3 | **#1 代码层完成，#2/#3/#4 待服务器执行** |
 | 后端 P2 | #14/#22/#23/#24 | ✅ 已完成 | — | — | ~~顺手修~~ |
 | 数据/爬虫 | 政策数据量少 | ⏸️ 待讨论 | — | — | 用户后续讨论 |
 | **E1-E4** | **简历素材** | **❌ 未做** | **1-2 天** | D3 | **🟡 后期** |
