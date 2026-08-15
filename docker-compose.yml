@@ -3,7 +3,6 @@
 #   本地开发：docker-compose up -d
 #   生产部署：把 .env 填好后 docker-compose up -d
 # 强制要求 .env 文件提供 SECRET_KEY / DB_ROOT_PASSWORD / DEEPSEEK_API_KEY
-version: '3.8'
 
 services:
   # ===== MySQL 数据库 =====
