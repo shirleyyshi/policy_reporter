@@ -14,15 +14,18 @@
 """
 import uuid
 import json
+from datetime import datetime
 from unittest.mock import patch, MagicMock
 
 from django.test import TestCase
+from django.utils import timezone
 
-from agent.tools import AgentState
+from agent.tools import AgentState, fetch_central, fetch_local
 from agent.core import (
     _run_loop, save_state, get_state, submit_answer,
     _serialize_state, _RUN_CACHE, MAX_STEPS,
 )
+from report.models import CentralPolicy, LocalPolicy
 
 
 def _make_state(**kwargs):
@@ -351,3 +354,104 @@ class SubmitAnswerTest(TestCase):
         # 清理
         _WAIT_EVENTS.pop(str(run_id), None)
         _HUMAN_ANSWERS.pop(str(run_id), None)
+
+
+def _make_dt(year, month, day, hour=10, minute=0):
+    """构造 timezone-aware datetime（避免 naive datetime 警告）。"""
+    return timezone.make_aware(datetime(year, month, day, hour, minute))
+
+
+class FetchToolsTest(TestCase):
+    """测试 fetch_central / fetch_local 工具的 DB 查询逻辑（PROJECT_AUDIT #23）。"""
+
+    def test_fetch_central_by_date(self):
+        """fetch_central 应按 date 过滤，只返回匹配日期的政策。"""
+        CentralPolicy.objects.create(
+            title="匹配政策", content="c1", type="通知",
+            publish_time=_make_dt(2026, 7, 13),
+            source_url="http://c/1",
+        )
+        CentralPolicy.objects.create(
+            title="不匹配", content="c2", type="通知",
+            publish_time=_make_dt(2026, 7, 14),
+            source_url="http://c/2",
+        )
+        state = _make_state()
+        result = fetch_central(state, {"date": "2026-07-13"})
+
+        self.assertEqual(result["fetched"], 1)
+        self.assertEqual(result["source"], "central")
+        self.assertEqual(len(state.raw_policies), 1)
+        self.assertEqual(state.raw_policies[0]["title"], "匹配政策")
+        self.assertEqual(state.raw_policies[0]["source"], "central")
+
+    def test_fetch_central_no_date_returns_all(self):
+        """不传 date 时应返回全部中央政策。"""
+        CentralPolicy.objects.create(
+            title="a", content="", type="通知",
+            publish_time=_make_dt(2026, 7, 1), source_url="http://x/1",
+        )
+        CentralPolicy.objects.create(
+            title="b", content="", type="公告",
+            publish_time=_make_dt(2026, 7, 2), source_url="http://x/2",
+        )
+        state = _make_state(task_input={})  # 无 date
+        result = fetch_central(state, {})
+
+        self.assertEqual(result["fetched"], 2)
+        self.assertEqual(len(state.raw_policies), 2)
+
+    def test_fetch_central_uses_task_input_date(self):
+        """params 无 date 时应回退到 state.task_input['date']。"""
+        CentralPolicy.objects.create(
+            title="t", content="", type="通知",
+            publish_time=_make_dt(2026, 7, 13), source_url="http://x",
+        )
+        state = _make_state(task_input={"date": "2026-07-13"})
+        result = fetch_central(state, {})
+
+        self.assertEqual(result["fetched"], 1)
+        self.assertEqual(result["date"], "2026-07-13")
+
+    def test_fetch_local_by_date(self):
+        """fetch_local 应按 date 过滤地方政策，并标记 source='local'。"""
+        LocalPolicy.objects.create(
+            title="沪政策", content="c", province="上海",
+            publish_time=_make_dt(2026, 7, 13),
+            source_url="http://sh/1",
+        )
+        LocalPolicy.objects.create(
+            title="其他天", content="c", province="上海",
+            publish_time=_make_dt(2026, 7, 14),
+            source_url="http://sh/2",
+        )
+        state = _make_state()
+        result = fetch_local(state, {"date": "2026-07-13"})
+
+        self.assertEqual(result["fetched"], 1)
+        self.assertEqual(result["source"], "local")
+        self.assertEqual(state.raw_policies[0]["province"], "上海")
+        self.assertEqual(state.raw_policies[0]["source"], "local")
+
+    def test_fetch_extends_not_replaces_raw_policies(self):
+        """多次 fetch 应扩展 raw_policies，而非覆盖。"""
+        CentralPolicy.objects.create(
+            title="c1", content="", type="通知",
+            publish_time=_make_dt(2026, 7, 13), source_url="http://c/1",
+        )
+        LocalPolicy.objects.create(
+            title="l1", content="", province="上海",
+            publish_time=_make_dt(2026, 7, 13), source_url="http://l/1",
+        )
+        state = _make_state()
+        fetch_central(state, {"date": "2026-07-13"})
+        fetch_local(state, {"date": "2026-07-13"})
+
+        self.assertEqual(len(state.raw_policies), 2)
+
+    def test_fetch_empty_db_returns_zero(self):
+        """空数据库应返回 fetched=0，不抛异常。"""
+        state = _make_state()
+        result = fetch_central(state, {"date": "2026-07-13"})
+        self.assertEqual(result["fetched"], 0)
+        self.assertEqual(state.raw_policies, [])

@@ -299,7 +299,7 @@ class EvalRunnerTest(TestCase):
         with patch('agent.eval.runner.run_agent', return_value=(uuid.uuid4(), mock_state)), \
              patch('agent.eval.runner.collect_run_metrics', return_value=mock_metrics):
             runner = EvalRunner(test_cases=[case])
-            result = runner.run_single(case)
+            result = runner.run_single(case, config_name="baseline")
 
         self.assertEqual(result['case_id'], 'test_1')
         self.assertIsNone(result['error'])
@@ -366,8 +366,8 @@ class EvalRunnerTest(TestCase):
         with self.assertRaises(ValueError):
             runner.run_ablation("nonexistent")
 
-    def test_config_name_detection(self):
-        """config 匹配 ABLATION_CONFIGS 时应识别名称。"""
+    def test_config_name_explicit(self):
+        """config_name 应由调用方显式传入，不再反向推断。"""
         from agent.eval.runner import EvalRunner, ABLATION_CONFIGS
         from agent.eval.testset import TestCase
 
@@ -378,7 +378,10 @@ class EvalRunnerTest(TestCase):
         with patch('agent.eval.runner.run_agent', return_value=(uuid.uuid4(), mock_state)), \
              patch('agent.eval.runner.collect_run_metrics', return_value={'success': True, 'step_count': 1}):
             runner = EvalRunner(test_cases=[case])
-            result = runner.run_single(case, config=ABLATION_CONFIGS['no_critic'])
+            # 显式传 config_name="no_critic"
+            result = runner.run_single(
+                case, config=ABLATION_CONFIGS['no_critic'], config_name="no_critic"
+            )
 
         self.assertEqual(result['config_name'], 'no_critic')
 

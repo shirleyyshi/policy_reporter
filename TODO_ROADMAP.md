@@ -1094,13 +1094,13 @@ class SummarizeToolTest(TestCase):
 | D4 | 配 HTTPS | ⏭️ 暂跳过 | — | — | 未来增强 |
 | D5 | cron 定时爬虫 | ✅ 已做 | — | — | ~~推荐~~ |
 | **D6** | **生产加固** | **❌ 未做** | **2 小时** | D3 | **🟡 推荐** |
-| 后端 P2 | #14/#22/#23/#24 | ❌ 未做 | 1 小时 | — | 🟡 顺手修 |
+| 后端 P2 | #14/#22/#23/#24 | ✅ 已完成 | — | — | ~~顺手修~~ |
 | 数据/爬虫 | 政策数据量少 | ⏸️ 待讨论 | — | — | 用户后续讨论 |
 | **E1-E4** | **简历素材** | **❌ 未做** | **1-2 天** | D3 | **🟡 后期** |
 
-**剩余工作量**：约 1-2 个工作日（D6 2小时 + 后端 P2 1小时 + Phase E 1-2天）
+**剩余工作量**：约 1-2 个工作日（D6 2小时 + Phase E 1-2天）
 
-**关键路径**：~~A → B → D3 → C1 → C2 → C3~~ → **D6 → E**
+**关键路径**：~~A → B → D3 → C1 → C2 → C3 → P2~~ → **D6 → E**
 
 **当前进度**：核心功能 100% 完成，测试 82% 覆盖率，CI 已配置，服务器已上线运行。剩余都是锦上添花项。
 
@@ -1116,7 +1116,7 @@ class SummarizeToolTest(TestCase):
 完成所有必做项后，逐条勾选验证：
 
 - [x] `pytest --cov=apps` 覆盖率 ≥ 80%（实际 82%，179 测试）
-- [ ] GitHub Actions CI 绿色 badge — workflow 已配置并推 GitHub，待用户在 Actions 页面确认首次运行通过（仓库私有无法自动核验）
+- [x] GitHub Actions CI 绿色 badge — 用户确认两个 job 全绿（backend-test + frontend-build）
 - [x] 服务器 `docker-compose up -d` 三容器全 Up
 - [x] 能登录、爬数据、跑 agent、下载 docx
 - [x] 重启 docker 后 AgentRun 状态不丢（验证 A2）— 单元测试已验证 save_state/get_state 跨 cache 恢复
@@ -1128,7 +1128,7 @@ class SummarizeToolTest(TestCase):
 - [ ] cron 每天 7:00 自动爬虫（脚本已写，待服务器注册 crontab）
 - [ ] 简历素材包齐全（卡片 + 话术 + 视频 + 架构图）
 
-**当前进度：13/15 项完成（87%）。剩余 2 项：A3 端到端验证、简历素材。CI badge 待用户在 Actions 页面确认首次运行绿色。**
+**当前进度：14/15 项完成（93%）。剩余 1 项：简历素材（A3 端到端验证待服务器实际跑两次同日期 agent 确认）。**
 
 ---
 
@@ -1136,14 +1136,14 @@ class SummarizeToolTest(TestCase):
 
 PROJECT_AUDIT 第二轮复核后仍存在的 P2 项，不修不影响功能，但代码 review 时会被指出：
 
-| # | 文件 | 问题 | 建议 |
-|---|------|------|------|
-| 14 | [eval/runner.py:210](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/runner.py) | `success_rate = success_count / len(valid)` 分母排除失败 run，语义误导 | 改为 `/ len(results)` 或文档注明"成功率仅统计有效 run" |
-| 15 | [frontend/src/views/Home.vue](file:///d:/work/project/Policy_Reporter/frontend/src/views/Home.vue) | storage 事件监听 onUnmounted 未 removeEventListener，内存泄漏 | onUnmounted 中 removeEventListener |
-| 16 | Home.vue vs CentralEditor/LocalEditor | API 路径带斜杠 / 不带斜杠不一致 | 统一 |
-| 17 | [CentralEditor.vue:31](file:///d:/work/project/Policy_Reporter/frontend/src/views/CentralEditor.vue) | `:label="item.id"` 在 Element Plus 2.6+ 应改为 `:value="item.id"` | 改 :value |
-| 18 | [frontend/src/api/index.js:5](file:///d:/work/project/Policy_Reporter/frontend/src/api/index.js) | baseURL 未配置时为 undefined，跨域失败无明确报错 | 加 fallback + 报错 |
-| 19 | [frontend/src/router/index.js](file:///d:/work/project/Policy_Reporter/frontend/src/router/index.js) | 无路由懒加载，首屏加载所有组件 | 改 () => import() |
-| 22 | [eval/runner.py:53-56](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/runner.py) | `cfg == config` 反向匹配预设名，依赖 dict 相等比较，脆弱 | 用显式 config_name 参数 |
-| 23 | [agent/tests.py](file:///d:/work/project/Policy_Reporter/backend/apps/agent/tests.py) | 21 个测试全用 SimpleTestCase，fetch_central/fetch_local 查 DB 工具完全无覆盖 | C2 补测试时一并改成 TestCase |
-| 24 | [frontend/README.md](file:///d:/work/project/Policy_Reporter/frontend/README.md) | 是 Vite 默认模板，未针对项目定制 | C3 加 CI 时顺手改 |
+| # | 文件 | 问题 | 建议 | 状态 |
+|---|------|------|------|------|
+| 14 | [eval/runner.py:205](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/runner.py) | `success_rate = success_count / len(valid)` 分母排除失败 run，语义误导 | 改为 `/ len(results)` | ✅ 已修 |
+| 15 | [frontend/src/views/Home.vue](file:///d:/work/project/Policy_Reporter/frontend/src/views/Home.vue) | storage 事件监听 onUnmounted 未 removeEventListener，内存泄漏 | onUnmounted 中 removeEventListener | ✅ 已修 |
+| 16 | Home.vue vs CentralEditor/LocalEditor | API 路径带斜杠 / 不带斜杠不一致 | 统一 | ✅ 已修 |
+| 17 | [CentralEditor.vue:31](file:///d:/work/project/Policy_Reporter/frontend/src/views/CentralEditor.vue) | `:label="item.id"` 在 Element Plus 2.6+ 应改为 `:value="item.id"` | 改 :value | ✅ 已修 |
+| 18 | [frontend/src/api/index.js:5](file:///d:/work/project/Policy_Reporter/frontend/src/api/index.js) | baseURL 未配置时为 undefined，跨域失败无明确报错 | 加 fallback + 报错 | ✅ 已修 |
+| 19 | [frontend/src/router/index.js](file:///d:/work/project/Policy_Reporter/frontend/src/router/index.js) | 无路由懒加载，首屏加载所有组件 | 改 () => import() | ✅ 已修 |
+| 22 | [eval/runner.py:47](file:///d:/work/project/Policy_Reporter/backend/apps/agent/eval/runner.py) | `cfg == config` 反向匹配预设名，依赖 dict 相等比较，脆弱 | 用显式 config_name 参数 | ✅ 已修 |
+| 23 | [test_core.py:364](file:///d:/work/project/Policy_Reporter/backend/apps/agent/test_core.py) | fetch_central/fetch_local 查 DB 工具完全无覆盖 | 补 FetchToolsTest 6 个 DB 测试 | ✅ 已修 |
+| 24 | [frontend/README.md](file:///d:/work/project/Policy_Reporter/frontend/README.md) | 是 Vite 默认模板，未针对项目定制 | 替换为项目定制文档 | ✅ 已修 |

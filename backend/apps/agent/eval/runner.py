@@ -44,19 +44,14 @@ class EvalRunner:
     def __init__(self, test_cases: Optional[list[TestCase]] = None):
         self.test_cases = test_cases or discover_test_cases()
 
-    def run_single(self, case: TestCase, config: Optional[dict] = None) -> dict:
+    def run_single(self, case: TestCase, config: Optional[dict] = None, config_name: str = "custom") -> dict:
         """
         跑单个测试用例。
         返回 {case_id, scenario, config_name, run_id, metrics, duration_sec, error}
-        """
-        config_name = "custom"
-        for name, cfg in ABLATION_CONFIGS.items():
-            if cfg == config:
-                config_name = name
-                break
-        if config is None:
-            config_name = "baseline"
 
+        config_name 由调用方显式传入（baseline/no_critic/no_replanner/no_stall/custom），
+        不再通过 dict 相等比较反向推断，避免预设配置相同时匹配错误。
+        """
         start = time.time()
         config_tag = config_name
 
@@ -118,7 +113,7 @@ class EvalRunner:
         total_start = time.time()
 
         for case in self.test_cases:
-            result = self.run_single(case, config=config)
+            result = self.run_single(case, config=config, config_name=config_name)
             results.append(result)
 
         total_duration = round(time.time() - total_start, 1)
@@ -207,7 +202,7 @@ class EvalRunner:
             "valid_cases": len(valid),
             "failed_cases": len(failed_runs),
             "success_count": success_count,
-            "success_rate": round(success_count / len(valid), 4),
+            "success_rate": round(success_count / len(results), 4),
             "avg_step_count": round(avg_steps, 1),
             "avg_critic_count": round(avg_critic, 1),
             "avg_critic_replan_rate": round(avg_replan_rate, 4) if avg_replan_rate is not None else None,
