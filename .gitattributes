@@ -1,0 +1,2 @@
+# Shell 脚本强制 LF 换行，避免 Windows CRLF 导致 Linux 执行报错
+*.sh text eol=lf
