@@ -255,7 +255,9 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
                     if policy_type == "central":
                         create_kwargs["type"] = config.get("default_category", "")
                     else:
+                        # 地方政策：province（地方属性）+ type（业务分类，与中央一致）
                         create_kwargs["province"] = config.get("default_province", "")
+                        create_kwargs["type"] = config.get("default_category", "综合")
 
                     Model.objects.create(**create_kwargs)
                     stats["new"] += 1

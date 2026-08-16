@@ -77,7 +77,7 @@ def fetch_local(state: AgentState, params: dict) -> dict:
     """按日期取地方政策（读 DB）。params: {date}"""
     date = params.get("date") or state.task_input.get("date")
     qs = LocalPolicy.objects.filter(publish_time__date=date) if date else LocalPolicy.objects.all()
-    items = list(qs.values('id', 'title', 'content', 'province', 'publish_time', 'source_url'))
+    items = list(qs.values('id', 'title', 'content', 'province', 'type', 'publish_time', 'source_url'))
     for it in items:
         it['source'] = 'local'
     state.raw_policies.extend(items)
@@ -138,15 +138,12 @@ def deduplicate(state: AgentState, params: dict) -> dict:
 
 def classify_policy(state: AgentState, params: dict) -> dict:
     """
-    分类政策。Phase 2 用 category_hint（DB 已有的 type/province 字段）确定性分类，
-    不调 LLM。理由：DB 字段已是结构化分类，再调 LLM 浪费且不稳——
+    分类政策。用 DB 的 type 字段（业务分类：财税/税务/金融/产业/综合）确定性分类，
+    不调 LLM。中央和地方统一用 type 做业务分类维度，province 仅作为地方属性保留。
     这是"并非每一步都需要 LLM"的工程判断。
     """
     for item in state.clean_policies:
-        if item.get('source') == 'central':
-            item['category'] = item.get('type') or '未分类'
-        else:
-            item['category'] = item.get('province') or '未分类'
+        item['category'] = item.get('type') or '未分类'
     return {"classified": len(state.clean_policies)}
 
 
@@ -210,12 +207,13 @@ def format_docx(state: AgentState, params: dict) -> dict:
     """生成最终 docx。复用 report.views.generate_docx，传入预计算 summary。"""
     if not state.summary:
         return {"error": "摘要未生成，无法产出 docx"}
+    # 中央和地方统一用 type（业务分类）作为分组维度
     central = [
         (it.get('title', ''), it.get('content', ''), it.get('type', ''), it.get('source_url', ''))
         for it in state.clean_policies if it.get('source') == 'central'
     ]
     local = [
-        (it.get('title', ''), it.get('content', ''), it.get('province', ''), it.get('source_url', ''))
+        (it.get('title', ''), it.get('content', ''), it.get('type', ''), it.get('source_url', ''))
         for it in state.clean_policies if it.get('source') == 'local'
     ]
     out = BytesIO()

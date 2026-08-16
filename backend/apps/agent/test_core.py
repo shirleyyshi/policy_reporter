@@ -431,6 +431,7 @@ class FetchToolsTest(TestCase):
         self.assertEqual(result["fetched"], 1)
         self.assertEqual(result["source"], "local")
         self.assertEqual(state.raw_policies[0]["province"], "上海")
+        self.assertEqual(state.raw_policies[0]["type"], "综合")  # default
         self.assertEqual(state.raw_policies[0]["source"], "local")
 
     def test_fetch_extends_not_replaces_raw_policies(self):

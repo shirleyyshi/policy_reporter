@@ -23,6 +23,7 @@ class LocalPolicy(models.Model):
     title = models.CharField(max_length=500)
     content = models.TextField()
     province = models.CharField(max_length=100)
+    type = models.CharField(max_length=100, blank=True, default="", verbose_name="业务分类")
     publish_time = models.DateTimeField()
     source_url = models.URLField(max_length=1000, blank=True)
     crawled_at = models.DateTimeField(null=True, blank=True, verbose_name="采集时间")

@@ -141,18 +141,18 @@ def generate_docx(central, local, legal_text, output_stream, summary=None, repor
             if p_item.runs:
                 set_font(p_item.runs[0], font_size=11)
 
-    # 地方法规
+    # 地方法规（按业务分类 type 分组，与中央一致）
     h_local = doc.add_heading("地方法规", level=2)
     set_heading_font(h_local, font_size=12)
 
-    province_group = defaultdict(list)
-    for title, content, province, source_url in local:
-        province_group[province].append((title, source_url))
+    type_group_local = defaultdict(list)
+    for title, content, policy_type, source_url in local:
+        type_group_local[policy_type or "综合"].append((title, source_url))
 
-    for province, policies in province_group.items():
-        p_province = doc.add_paragraph(style="List Bullet")
-        run_province = p_province.add_run(f"【{province}】")
-        set_font(run_province, font_size=12)
+    for policy_type, policies in type_group_local.items():
+        p_type = doc.add_paragraph(style="List Bullet")
+        run_type = p_type.add_run(f"【{policy_type}】")
+        set_font(run_type, font_size=12)
 
         for title, url in policies:
             p_item = doc.add_paragraph(style="List Bullet 2")
@@ -237,7 +237,7 @@ def export_policies(request):
     local_ids = [i['id'] for i in selected if i['source'] == "local"]
 
     central = CentralPolicy.objects.filter(id__in=central_ids).values_list('title', 'content', 'type', 'source_url')
-    local = LocalPolicy.objects.filter(id__in=local_ids).values_list('title', 'content', 'province', 'source_url')
+    local = LocalPolicy.objects.filter(id__in=local_ids).values_list('title', 'content', 'type', 'source_url')
 
     doc_io = BytesIO()
     generate_docx(central, local, legal_text, doc_io, report_date=report_date)

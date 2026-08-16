@@ -156,22 +156,23 @@ class ClassifyPolicyTest(SimpleTestCase):
         self.assertEqual(state.clean_policies[0]['category'], '税务')
         self.assertEqual(state.clean_policies[1]['category'], '财政')
 
-    def test_local_uses_province(self):
+    def test_local_uses_type(self):
+        """地方政策也用 type（业务分类）做分类，与中央维度一致。"""
         state = AgentState(task_input={})
         state.clean_policies = [
-            {'source': 'local', 'province': '上海', 'title': 'A'},
-            {'source': 'local', 'province': '江苏', 'title': 'B'},
+            {'source': 'local', 'province': '上海', 'type': '税务', 'title': 'A'},
+            {'source': 'local', 'province': '上海', 'type': '财政', 'title': 'B'},
         ]
         classify_policy(state, {})
-        self.assertEqual(state.clean_policies[0]['category'], '上海')
-        self.assertEqual(state.clean_policies[1]['category'], '江苏')
+        self.assertEqual(state.clean_policies[0]['category'], '税务')
+        self.assertEqual(state.clean_policies[1]['category'], '财政')
 
     def test_fallback_when_metadata_missing(self):
-        """type/province 字段缺失时回退到"未分类"。"""
+        """type 字段缺失时回退到"未分类"。"""
         state = AgentState(task_input={})
         state.clean_policies = [
             {'source': 'central', 'title': 'A'},  # 没 type
-            {'source': 'local', 'title': 'B'},    # 没 province
+            {'source': 'local', 'title': 'B'},    # 没 type
         ]
         classify_policy(state, {})
         self.assertEqual(state.clean_policies[0]['category'], '未分类')

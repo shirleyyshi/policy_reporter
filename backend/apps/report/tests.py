@@ -87,7 +87,7 @@ class GenerateDocxTest(TestCase):
     def test_generate_docx_with_data(self):
         """有数据时应生成非空 docx。"""
         central = [("中央政策1", "内容1", "通知", "http://c1")]
-        local = [("地方政策1", "内容2", "上海", "http://l1")]
+        local = [("地方政策1", "内容2", "综合", "http://l1")]
         out = BytesIO()
         # 传 summary 跳过 LLM 调用
         generate_docx(central, local, "", out, summary="• 测试摘要")

@@ -51,7 +51,7 @@ def _has_partial_missing(date: str) -> bool:
     if central.filter(content="").exists() or central.filter(type="").exists():
         return True
     local = LocalPolicy.objects.filter(publish_time__date=date)
-    if local.filter(content="").exists() or local.filter(province="").exists():
+    if local.filter(content="").exists() or local.filter(province="").exists() or local.filter(type="").exists():
         return True
     return False
 

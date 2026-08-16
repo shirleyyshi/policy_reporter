@@ -9,9 +9,11 @@ sites=(
     "财政部|https://www.mof.gov.cn/"
     "国家税务总局|http://www.chinatax.gov.cn/"
     "中国人民银行|http://www.pbc.gov.cn/"
-    "国家发改委|https://www.ndrc.gov.cn/"
+    "商务部|http://www.mofcom.gov.cn/"
     "广州市财政局|https://czj.gz.gov.cn/"
     "广东省税务局|http://guangdong.chinatax.gov.cn/"
+    "广东省地方金融局|https://www.gdjr.gov.cn/"
+    "广东省商务厅|http://com.gd.gov.cn/"
 )
 
 for site in "${sites[@]}"; do
