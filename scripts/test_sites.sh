@@ -1,16 +1,16 @@
 #!/bin/bash
-# 测试北京 4 个政府站点从新加坡服务器的可达性
+# 测试上海 4 个政府站点从新加坡服务器的可达性
 # 中央 4 站(财政部/税务总局/央行/商务部)已确认可达，本脚本只测地方
 # 用法：bash scripts/test_sites.sh
 
-echo "=== 测试北京地方站点可达性 ==="
+echo "=== 测试上海地方站点可达性 ==="
 echo ""
 
 sites=(
-    "北京市财政局|https://czj.beijing.gov.cn/"
-    "北京市税务局|http://beijing.chinatax.gov.cn/"
-    "北京市地方金融局|https://jrj.beijing.gov.cn/"
-    "北京市商务局|https://sw.beijing.gov.cn/"
+    "上海市财政局|https://czj.sh.gov.cn/"
+    "上海市税务局|https://shanghai.chinatax.gov.cn/"
+    "上海市地方金融局|https://jrj.sh.gov.cn/"
+    "上海市商务委|http://swt.sh.gov.cn/"
 )
 
 for site in "${sites[@]}"; do
