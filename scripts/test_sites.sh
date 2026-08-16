@@ -1,19 +1,16 @@
 #!/bin/bash
-# 测试政府网站从新加坡服务器的可达性
+# 测试深圳 4 个政府站点从新加坡服务器的可达性
+# 中央 4 站(财政部/税务总局/央行/商务部)已确认可达，本脚本只测地方
 # 用法：bash scripts/test_sites.sh
 
-echo "=== 测试政府网站可达性 ==="
+echo "=== 测试深圳地方站点可达性 ==="
 echo ""
 
 sites=(
-    "财政部|https://www.mof.gov.cn/"
-    "国家税务总局|http://www.chinatax.gov.cn/"
-    "中国人民银行|http://www.pbc.gov.cn/"
-    "商务部|http://www.mofcom.gov.cn/"
-    "广州市财政局|https://czj.gz.gov.cn/"
-    "广东省税务局|http://guangdong.chinatax.gov.cn/"
-    "广东省地方金融局|https://www.gdjr.gov.cn/"
-    "广东省商务厅|http://com.gd.gov.cn/"
+    "深圳市财政局|https://szfb.sz.gov.cn/"
+    "深圳市税务局|https://shenzhen.chinatax.gov.cn/"
+    "深圳市地方金融局|https://jr.sz.gov.cn/"
+    "深圳市商务局|https://commerce.sz.gov.cn/"
 )
 
 for site in "${sites[@]}"; do
