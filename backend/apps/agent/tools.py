@@ -138,7 +138,7 @@ def deduplicate(state: AgentState, params: dict) -> dict:
 
 def classify_policy(state: AgentState, params: dict) -> dict:
     """
-    分类政策。用 DB 的 type 字段（业务分类：财税/税务/金融/产业/综合）确定性分类，
+    分类政策。用 DB 的 type 字段（业务分类：财政/税务/金融/商贸）确定性分类，
     不调 LLM。中央和地方统一用 type 做业务分类维度，province 仅作为地方属性保留。
     这是"并非每一步都需要 LLM"的工程判断。
     """
