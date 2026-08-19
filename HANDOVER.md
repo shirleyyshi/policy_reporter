@@ -1,7 +1,7 @@
 # Policy_Reporter 项目交接文档
 
 > 创建日期：2026-08-16
-> 当前状态：crawl_config 已配齐 8 站点（中央 4 + 广州 4），待服务器 dry-run 调 XPath + 清空重爬
+> 当前状态：crawl_config 8 站点已配 + 代码审查修复完成 + 前端下拉框已更新，待服务器 dry-run 调 XPath + 清空重爬
 
 ---
 
@@ -44,13 +44,15 @@
 
 ### 已完成
 - Phase A：Agent 能力补齐（Observation 三元组 + AgentRun 持久化 + RAG episodic memory）
-- Phase B：配置就绪（跳过本地验证，直接服务器验证）
+- Phase B：配置就绪
 - Phase C：测试 82% 覆盖率 + GitHub Actions CI 双 job 全绿
 - Phase D：服务器部署 + D6 生产加固（admin IP 白名单 + fail2ban + Docker 日志轮转 + DB 自动备份）
 - 数据提取 bug 修复（导出标题日期/摘要条数/选择交集）
 - save_state datetime 序列化 bug 修复
 - episodic memory 序列化 bug 修复
 - crawl_config 配齐 8 站点（中央 4 + 广州 4），分类统一为财政/税务/金融/商贸
+- 前端 CentralEditor.vue 分类下拉框已更新为财政/税务/金融/商贸
+- 代码鲁棒性审查 + 修复（详见第 9 节）
 
 ### 未完成（按优先级排序）
 
@@ -79,6 +81,9 @@ docker compose exec backend python manage.py crawl_policies --all
 
 # 重建 RAG 索引
 docker compose exec backend python manage.py build_index
+
+# 跑测试确认无回归
+docker compose exec backend pytest --tb=short -q
 ```
 
 **dry-run 输出怎么看**：
@@ -88,10 +93,7 @@ docker compose exec backend python manage.py build_index
 
 **调 XPath 方法**：curl 拿 HTML → 看 DOM 结构 → 改 crawl_config.json 对应字段
 
-#### P1：前端分类下拉框更新
-前端 `CentralEditor.vue` / `LocalEditor.vue` 的分类下拉框可能还是旧值（海关/商务/税务），需更新为财政/税务/金融/商贸。
-
-#### P2：Phase E 简历素材
+#### P1：Phase E 简历素材
 1 页项目卡片 + 3 分钟话术 + demo 视频 + 架构图（README 已有 mermaid 图，可复用）
 
 ---
@@ -144,7 +146,7 @@ docker compose exec backend python manage.py build_index
 
 ---
 
-## 6. 硬约束（从 project_memory 提取）
+## 6. 硬约束
 
 - 爬取的政策数据必须含 crawled_at 字段
 - 标题过滤只保留 通知/公告/意见/办法/规定/方案/条例/细则 类型
@@ -174,6 +176,36 @@ docker compose exec backend python manage.py build_index
 1. 先跑 dry-run 看哪些站 XPath 不对
 2. 逐站调 XPath（curl HTML → 改 crawl_config → 再 dry-run）
 3. XPath 全过后清空 DB + 正式爬取 + 重建索引
-4. 前端分类下拉框更新为财政/税务/金融/商贸
-5. 跑一次 agent run 验日报 docx 分类是否正确
-6. 做 Phase E 简历素材
+4. 跑一次 agent run 验日报 docx 分类是否正确
+5. 做 Phase E 简历素材
+
+---
+
+## 9. 代码鲁棒性审查与修复记录（2026-08-16）
+
+### 修复的 8 个问题
+
+| # | 严重度 | 文件 | 问题 | 修复 |
+|---|--------|------|------|------|
+| 1 | **P0 严重** | agent/views.py:173 | 变量 `has_docx_trace` 遮蔽导入的同名函数，导致 `UnboundLocalError`，线上 `agent_runs_list` 端点 500 | 局部变量改名 `has_docx` |
+| 2 | P1 | agent/core.py:22 | 未使用的 `from datetime import datetime` 死导入 | 删除 |
+| 3 | P1 | agent/core.py:98,124 | LLM 返回 `None` content 时 `json.loads(None)` 抛 `TypeError`，穿透容错逻辑 | 抽取 `_parse_llm_json()` 公共函数，显式判空 + 捕获 `(JSONDecodeError, TypeError)` |
+| 4 | P1 | agent/core.py:372 | `isinstance(a, tuple)` 在 JSON 序列化后恒为 False（tuple→list），断点续跑会丢失 key_decisions | 改为 `len(a) >= 2` 兼容 tuple/list |
+| 5 | P1 | agent/rag.py:33 | `_get_collection` 不检查 `_client` 是否已存在，可能覆盖已有客户端 | 加 `if _client is None:` 守卫，与 `_get_episodic_collection` 对齐 |
+| 6 | P1 | report/views.py:56 | `call_deepseek_summarization` 无重试无异常处理，DeepSeek 限流导致导出偶发失败 | 加指数退避重试（3 次），重试耗尽返回空摘要不阻断导出 |
+| 7 | P1 | crawl_policies.py:290 | 配置文件读取无异常处理，文件缺失/JSON 错误抛原始堆栈 | 加 `FileNotFoundError` / `JSONDecodeError` 捕获 + 友好提示 |
+| 8 | P2 | agent/views.py:105 | `traces.last().step` 在 list comprehension 消费 QuerySet 后触发不必要的二次 SQL | 改为 `trace_list[-1]['step']` |
+
+### 消除的重复代码
+- `_call_actuator` 和 `_call_critic` 的 JSON 解析容错逻辑重复 → 抽取 `_parse_llm_json()` 公共函数
+
+### 双语注释
+以下关键函数已加中英文双语注释：
+- `core.py`: `_parse_llm_json` / `_call_actuator` / `_call_critic` / `key_decisions` 逻辑
+- `rag.py`: `_get_collection`
+- `report/views.py`: `call_deepseek_summarization`
+- `crawl_policies.py`: `handle` 配置读取
+
+### 验证
+- 所有 44 个 Python 文件编译通过（`py_compile` 检查）
+- 本地无 pytest 环境，服务器有完整 pytest 环境，推送后跑 `pytest --tb=short -q` 确认无回归

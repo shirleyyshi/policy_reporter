@@ -102,7 +102,7 @@ def agent_trace(request, run_id):
         docx_available = state.docx_bytes is not None
     else:
         run_status = _infer_status(run_id)
-        step = traces.last().step
+        step = trace_list[-1]['step'] if trace_list else 0
         state_summary = None
         docx_available = has_docx_trace(run_id)
     return Response({
@@ -170,7 +170,7 @@ def agent_runs_list(request):
     )
     result = []
     for r in runs:
-        has_docx_trace = has_docx_trace(r['run_id'])
+        has_docx = has_docx_trace(r['run_id'])
         state = get_state(r['run_id'])
         status = state.status if state else _infer_status(r['run_id'])
         result.append({
@@ -178,7 +178,7 @@ def agent_runs_list(request):
             'step_count': r['step_count'],
             'trace_count': r['trace_count'],
             'status': status,
-            'has_docx': has_docx_trace or (state.docx_bytes is not None if state else False),
+            'has_docx': has_docx or (state.docx_bytes is not None if state else False),
             'created_at': r['created_at'].isoformat() if r['created_at'] else None,
             'last_updated': r['last_updated'].isoformat() if r['last_updated'] else None,
         })

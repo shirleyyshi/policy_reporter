@@ -36,9 +36,10 @@
         <span class="filter-label">类型</span>
         <el-select v-model="filterType" placeholder="全部" clearable size="small" class="filter-select">
           <el-option label="全部" value=""></el-option>
-          <el-option label="海关" value="海关"></el-option>
-          <el-option label="商务" value="商务"></el-option>
+          <el-option label="财政" value="财政"></el-option>
           <el-option label="税务" value="税务"></el-option>
+          <el-option label="金融" value="金融"></el-option>
+          <el-option label="商贸" value="商贸"></el-option>
         </el-select>
       </div>
     </section>

@@ -286,9 +286,16 @@ class Command(BaseCommand):
         parser.add_argument("--max-pages", type=int, help="覆盖配置的页数")
 
     def handle(self, *args, **options):
-        # 读取配置
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            configs = json.load(f)
+        # 读取配置 / Load crawler config
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                configs = json.load(f)
+        except FileNotFoundError:
+            self.stdout.write(self.style.ERROR(f"配置文件不存在 / Config not found: {CONFIG_PATH}"))
+            return
+        except json.JSONDecodeError as e:
+            self.stdout.write(self.style.ERROR(f"配置文件 JSON 解析失败 / JSON parse error: {e}"))
+            return
 
         # 筛选要爬的站点
         if options["site"]:

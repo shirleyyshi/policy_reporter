@@ -19,7 +19,6 @@ import uuid
 import time
 import logging
 import threading
-from datetime import datetime
 from collections import deque
 from pathlib import Path
 
@@ -81,6 +80,22 @@ def _call_llm_with_retry(fn, *args, **kwargs):
     raise last_exc
 
 
+def _parse_llm_json(content):
+    """解析 LLM 返回的 JSON content，容错 None / 非 JSON / JSON 片段。
+    Parse LLM JSON output with fallbacks for None / invalid JSON / JSON fragments.
+    """
+    if not content:
+        raise ValueError("LLM 返回空 content")
+    try:
+        return json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        import re
+        m = re.search(r'\{[\s\S]*\}', content)
+        if m:
+            return json.loads(m.group(0))
+        raise ValueError(f"无法从 LLM 响应提取 JSON: {content[:100]}")
+
+
 def _call_actuator(state, replan_hint=None):
     """调 Actuator LLM，返回解析后的 dict。"""
     user_prompt = build_step_prompt(state, MAX_STEPS, replan_hint)
@@ -95,16 +110,7 @@ def _call_actuator(state, replan_hint=None):
         temperature=0.3,
         stream=False,
     )
-    content = response.choices[0].message.content
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        # 容错：尝试提取 JSON 片段
-        import re
-        m = re.search(r'\{[\s\S]*\}', content)
-        if m:
-            return json.loads(m.group(0))
-        raise
+    return _parse_llm_json(response.choices[0].message.content)
 
 
 def _call_critic(state):
@@ -121,14 +127,9 @@ def _call_critic(state):
         temperature=0,
         stream=False,
     )
-    content = response.choices[0].message.content
     try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        import re
-        m = re.search(r'\{[\s\S]*\}', content)
-        if m:
-            return json.loads(m.group(0))
+        return _parse_llm_json(response.choices[0].message.content)
+    except (ValueError, json.JSONDecodeError):
         return {"needs_replan": False, "replan_hint": ""}
 
 
@@ -369,11 +370,12 @@ def _run_loop(run_id, state, config=None):
     # A3: 存 episodic memory（仅成功 run 且有 summary 时，避免 failed run 污染经验库）
     if state.status == "done" and state.summary:
         date = state.task_input.get('date', '')
-        # key_decisions 取完整 (tool, params) 序列，供下次 run 复用工具调用策略
+        # key_decisions：取工具调用序列供下次 run 参考策略。
+        # last_actions 元组可能被 JSON 序列化成 list，用 len 检查兼容 tuple/list。
         key_decisions = [
             {"tool": a[0], "params": a[1]}
             for a in state.last_actions
-            if isinstance(a, tuple) and len(a) >= 2
+            if len(a) >= 2
         ]
         store_episodic_memory(run_id, date, state.summary, key_decisions)
 

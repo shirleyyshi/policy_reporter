@@ -54,6 +54,9 @@ def add_hyperlink(paragraph, url, text, font_name="微软雅黑", font_size=11):
 
 
 def call_deepseek_summarization(texts):
+    """调 DeepSeek 生成摘要，失败时指数退避重试 3 次。
+    Call DeepSeek for summarization with exponential-backoff retry (3 attempts).
+    """
     # 没有政策内容时直接返回空，不调用 API
     if not texts:
         return ""
@@ -72,14 +75,31 @@ def call_deepseek_summarization(texts):
             f"必须且只能生成{target_count}条摘要，不要多生成也不要少生成。仅返回纯文本，不要多余解释。\n\n"
             + "\n\n".join(selected_texts)
     )
-    response = openai_client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        stream=False
-    )
-    return response.choices[0].message.content.strip()
+
+    # 指数退避重试（应对 DeepSeek 限流/网络抖动）
+    last_exc = None
+    for attempt in range(3):
+        try:
+            response = openai_client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": prompt}],
+                stream=False
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            last_exc = e
+            if attempt < 2:
+                import time
+                delay = 1.0 * (2 ** attempt)
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"DeepSeek 摘要调用失败（第 {attempt+1}/3 次），{delay}s 后重试: {e}"
+                )
+                time.sleep(delay)
+    # 重试耗尽，返回空摘要（不阻断导出流程）
+    import logging
+    logging.getLogger(__name__).error(f"DeepSeek 摘要重试耗尽: {last_exc}")
+    return ""
 
 
 def set_heading_font(paragraph, font_name="微软雅黑", font_size=14, bold=True):
