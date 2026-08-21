@@ -75,13 +75,23 @@ def parse_date(date_str):
     return None
 
 
-def fetch_page(url, encoding="utf-8", timeout=DEFAULT_TIMEOUT):
-    """抓取页面，返回 lxml tree。失败返回 None。"""
-    r = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout)
-    r.encoding = encoding
-    if r.status_code != 200:
-        return None
-    return html.fromstring(r.text)
+def fetch_page(url, encoding="utf-8", timeout=DEFAULT_TIMEOUT, referer=None, retries=1):
+    """抓取页面，返回 lxml tree。失败返回 None（自动重试，打印状态码便于诊断）。"""
+    headers = dict(DEFAULT_HEADERS)
+    if referer:
+        headers["Referer"] = referer
+    for attempt in range(retries + 1):
+        try:
+            r = requests.get(url, headers=headers, timeout=timeout)
+            if r.status_code == 200:
+                r.encoding = encoding
+                return html.fromstring(r.text)
+            print(f"    [HTTP {r.status_code}] {url}")
+        except requests.RequestException as e:
+            print(f"    [{type(e).__name__}] {url}")
+        if attempt < retries:
+            time.sleep(3)
+    return None
 
 
 def extract_title(tree, config):
@@ -174,6 +184,7 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
     page_url_pattern = config.get("page_url_pattern", "")
     # 翻页偏移：财政部第 2 页是 index_1.htm（page_offset=-1），多数站是 index_2.html（0）
     page_offset = config.get("page_offset", 0)
+    timeout = config.get("timeout_seconds", DEFAULT_TIMEOUT)
 
     stats = {
         "crawled": 0, "new": 0, "skipped": 0, "filtered": 0,
@@ -194,7 +205,7 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
 
         # 1. 抓列表页
         try:
-            tree = fetch_page(url, encoding)
+            tree = fetch_page(url, encoding, timeout=timeout)
             if tree is None:
                 print(f"  [第 {page_num} 页] 列表页抓取失败 (HTTP 非 200): {url}")
                 if page_num == 1:
@@ -238,7 +249,8 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
         for title_hint, detail_url in page_new_links:
             stats["crawled"] += 1
             try:
-                detail_tree = fetch_page(detail_url, encoding)
+                # Referer 设为列表页，模拟浏览器从列表点进详情（部分政府站防盗链）
+                detail_tree = fetch_page(detail_url, encoding, timeout=timeout, referer=url)
                 if detail_tree is None:
                     print(f"  [失败] {title_hint[:40]}... (HTTP 错误)")
                     stats["failed"] += 1
