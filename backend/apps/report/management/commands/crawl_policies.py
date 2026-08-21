@@ -75,12 +75,19 @@ def parse_date(date_str):
 
 
 def fetch_page(url, encoding="utf-8", timeout=DEFAULT_TIMEOUT):
-    """抓取页面，返回 lxml tree。失败返回 None。"""
-    r = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout)
-    r.encoding = encoding
-    if r.status_code != 200:
+    """抓取页面，返回 lxml tree。失败返回 None。
+    Fetch page and return lxml tree. Returns None on failure.
+    """
+    try:
+        r = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout)
+        r.encoding = encoding
+        if r.status_code != 200:
+            print(f"    [HTTP {r.status_code}] {url}")
+            return None
+        return html.fromstring(r.text)
+    except requests.RequestException as e:
+        print(f"    [请求失败] {url} - {e}")
         return None
-    return html.fromstring(r.text)
 
 
 def extract_title(tree, config):
@@ -215,7 +222,7 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
             try:
                 detail_tree = fetch_page(detail_url, encoding)
                 if detail_tree is None:
-                    print(f"  [失败] {title_hint[:40]}... (HTTP 错误)")
+                    print(f"  [失败] {title_hint[:40]}... (HTTP 错误: {detail_url})")
                     stats["failed"] += 1
                     time.sleep(delay)
                     continue
