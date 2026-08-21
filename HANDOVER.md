@@ -54,6 +54,7 @@
 - episodic memory 序列化 bug 修复
 - crawl_config 配齐 8 站点（中央 4 + 广州 4），分类统一为财政/税务/金融/商贸
 - 2026-08-21 爬虫质量修复：8 站 URL 逐一 WebFetch 实测修正（商务部/广州财政/广东税务 3 个旧 URL 已失效全部更换）；新增 safe（中央金融）+ chinatax_central（中央税务）两个替代源；爬虫逻辑增强（翻页偏移 page_offset、标题取首个非空、正文取最长节点、日期页面文本兜底、完整 Chrome UA）
+- 2026-08-21 二轮实测修复（服务器 dry-run 暴露）：商务部列表/详情页均为 JS 渲染 → 列表改走 jpaas JSON API（list_api 配置，翻页参数 paramJson 已实测）；广州财政（zw-title/zoomcon/span.time）、广州金融（info_title/info_cont/info_time）、广东税务（UCAPTITLE/zoomcon/lawfwrq）详情页 XPath 按真实 DOM 修正；财政部子域名网关随机 502 → retries=3 递增退避 + delay 3s
 - 前端 CentralEditor.vue 分类下拉框已更新为财政/税务/金融/商贸
 - 代码鲁棒性审查 + 修复（详见第 9 节）
 

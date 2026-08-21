@@ -90,7 +90,7 @@ def fetch_page(url, encoding="utf-8", timeout=DEFAULT_TIMEOUT, referer=None, ret
         except requests.RequestException as e:
             print(f"    [{type(e).__name__}] {url}")
         if attempt < retries:
-            time.sleep(3)
+            time.sleep(3 + attempt * 3)  # 递增退避：3s, 6s, 9s...
     return None
 
 
@@ -167,6 +167,28 @@ def extract_date(tree, config):
     return None
 
 
+def fetch_api_list(list_api, page_num, referer, timeout):
+    """从 JSON API 获取列表页 HTML（商务部 jpaas 接口：列表由 JS 渲染，直接调接口）。
+    list_api 含 {page} 占位符。返回 lxml tree，失败返回 None。"""
+    url = list_api.replace("{page}", str(page_num))
+    headers = dict(DEFAULT_HEADERS)
+    headers["Referer"] = referer
+    try:
+        r = requests.get(url, headers=headers, timeout=timeout)
+        if r.status_code != 200:
+            print(f"    [HTTP {r.status_code}] {url}")
+            return None
+        data = r.json()
+        html_str = (data.get("data") or {}).get("html", "")
+        if not html_str:
+            print(f"    [API 空响应] {url}")
+            return None
+        return html.fromstring(html_str)
+    except (requests.RequestException, ValueError) as e:
+        print(f"    [{type(e).__name__}] {url}")
+        return None
+
+
 def crawl_site(config, dry_run=False, max_pages_override=None):
     """
     爬取单个站点，返回统计。
@@ -185,6 +207,9 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
     # 翻页偏移：财政部第 2 页是 index_1.htm（page_offset=-1），多数站是 index_2.html（0）
     page_offset = config.get("page_offset", 0)
     timeout = config.get("timeout_seconds", DEFAULT_TIMEOUT)
+    retries = config.get("retries", 1)
+    # API 模式：列表由 JS 渲染时直接调 JSON 接口（如商务部），含 {page} 占位符
+    list_api = config.get("list_api", "")
 
     stats = {
         "crawled": 0, "new": 0, "skipped": 0, "filtered": 0,
@@ -195,7 +220,9 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
     # 翻页循环
     for page_num in range(1, max_pages + 1):
         # 构造当前页 URL
-        if page_num == 1:
+        if list_api:
+            url = list_url  # Referer 用；列表内容从 API 拿
+        elif page_num == 1:
             url = list_url
         elif page_url_pattern:
             url = page_url_pattern.replace("{page}", str(page_num + page_offset))
@@ -204,18 +231,25 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
             break
 
         # 1. 抓列表页
-        try:
-            tree = fetch_page(url, encoding, timeout=timeout)
+        if list_api:
+            tree = fetch_api_list(list_api, page_num, list_url, timeout)
             if tree is None:
-                print(f"  [第 {page_num} 页] 列表页抓取失败 (HTTP 非 200): {url}")
                 if page_num == 1:
                     stats["list_failed"] = True
-                break  # 列表页失败就停止翻页
-        except Exception as e:
-            print(f"  [第 {page_num} 页] 列表页抓取异常: {e}")
-            if page_num == 1:
-                stats["list_failed"] = True
-            break
+                break
+        else:
+            try:
+                tree = fetch_page(url, encoding, timeout=timeout, retries=retries)
+                if tree is None:
+                    print(f"  [第 {page_num} 页] 列表页抓取失败 (HTTP 非 200): {url}")
+                    if page_num == 1:
+                        stats["list_failed"] = True
+                    break  # 列表页失败就停止翻页
+            except Exception as e:
+                print(f"  [第 {page_num} 页] 列表页抓取异常: {e}")
+                if page_num == 1:
+                    stats["list_failed"] = True
+                break
 
         stats["pages_fetched"] += 1
         print(f"  [第 {page_num} 页] 抓取成功: {url}")
@@ -250,7 +284,7 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
             stats["crawled"] += 1
             try:
                 # Referer 设为列表页，模拟浏览器从列表点进详情（部分政府站防盗链）
-                detail_tree = fetch_page(detail_url, encoding, timeout=timeout, referer=url)
+                detail_tree = fetch_page(detail_url, encoding, timeout=timeout, referer=url, retries=retries)
                 if detail_tree is None:
                     print(f"  [失败] {title_hint[:40]}... (HTTP 错误)")
                     stats["failed"] += 1
