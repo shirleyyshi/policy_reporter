@@ -75,19 +75,12 @@ def parse_date(date_str):
 
 
 def fetch_page(url, encoding="utf-8", timeout=DEFAULT_TIMEOUT):
-    """抓取页面，返回 lxml tree。失败返回 None。
-    Fetch page and return lxml tree. Returns None on failure.
-    """
-    try:
-        r = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout)
-        r.encoding = encoding
-        if r.status_code != 200:
-            print(f"    [HTTP {r.status_code}] {url}")
-            return None
-        return html.fromstring(r.text)
-    except requests.RequestException as e:
-        print(f"    [请求失败] {url} - {e}")
+    """抓取页面，返回 lxml tree。失败返回 None。"""
+    r = requests.get(url, headers=DEFAULT_HEADERS, timeout=timeout)
+    r.encoding = encoding
+    if r.status_code != 200:
         return None
+    return html.fromstring(r.text)
 
 
 def extract_title(tree, config):
@@ -222,7 +215,7 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
             try:
                 detail_tree = fetch_page(detail_url, encoding)
                 if detail_tree is None:
-                    print(f"  [失败] {title_hint[:40]}... (HTTP 错误: {detail_url})")
+                    print(f"  [失败] {title_hint[:40]}... (HTTP 错误)")
                     stats["failed"] += 1
                     time.sleep(delay)
                     continue
@@ -304,9 +297,18 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"配置文件 JSON 解析失败 / JSON parse error: {e}"))
             return
 
+        # 跳过禁用站点 / Skip disabled sites
+        disabled = [c for c in configs if not c.get("enabled", True)]
+        for c in disabled:
+            reason = c.get("disabled_reason", "未知原因")
+            self.stdout.write(self.style.WARNING(f"[跳过] {c['name']}（已禁用: {reason}）"))
+        configs = [c for c in configs if c.get("enabled", True)]
+
         # 筛选要爬的站点
         if options["site"]:
-            configs = [c for c in configs if c["site_id"] == options["site"]]
+            # --site 时忽略 enabled 标志，允许强制爬取禁用站点
+            all_configs = json.load(open(CONFIG_PATH, "r", encoding="utf-8"))
+            configs = [c for c in all_configs if c["site_id"] == options["site"]]
             if not configs:
                 self.stdout.write(self.style.ERROR(f"未找到 site_id={options['site']}"))
                 return
