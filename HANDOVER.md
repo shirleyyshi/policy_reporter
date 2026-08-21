@@ -1,7 +1,7 @@
 # Policy_Reporter 项目交接文档
 
 > 创建日期：2026-08-16
-> 当前状态：8 站点 URL 已逐一实测修正（2026-08-21）+ 爬虫提取逻辑增强，待服务器 dry-run 终验 + 清空重爬
+> 当前状态（2026-08-21）：爬虫全链路已通并完成正式爬取 — **166 条真实政策数据（中央 94 + 地方 72），财政/税务/金融/商贸 4 类中央地方全对称，空正文 0，RAG 索引已重建**。cron 定时任务**未注册**（用户要求需要时再开，见第 8 节）。剩余待办仅 Phase E 简历素材。
 
 ---
 
@@ -55,50 +55,19 @@
 - crawl_config 配齐 8 站点（中央 4 + 广州 4），分类统一为财政/税务/金融/商贸
 - 2026-08-21 爬虫质量修复：8 站 URL 逐一 WebFetch 实测修正（商务部/广州财政/广东税务 3 个旧 URL 已失效全部更换）；新增 safe（中央金融）+ chinatax_central（中央税务）两个替代源；爬虫逻辑增强（翻页偏移 page_offset、标题取首个非空、正文取最长节点、日期页面文本兜底、完整 Chrome UA）
 - 2026-08-21 二轮实测修复（服务器 dry-run 暴露）：商务部列表/详情页均为 JS 渲染 → 列表改走 jpaas JSON API（list_api 配置，翻页参数 paramJson 已实测）；广州财政（zw-title/zoomcon/span.time）、广州金融（info_title/info_cont/info_time）、广东税务（UCAPTITLE/zoomcon/lawfwrq）详情页 XPath 按真实 DOM 修正；财政部子域名网关随机 502 → retries=3 递增退避 + delay 3s
+- 2026-08-21 **正式爬取完成**：166 条入库（中央 94：财政24/税务8/金融33/商贸29；地方 72：财政20/税务1/金融22/商贸29），空正文 0，RAG 索引已重建（166 条）。爬虫阶段收尾
 - 前端 CentralEditor.vue 分类下拉框已更新为财政/税务/金融/商贸
 - 代码鲁棒性审查 + 修复（详见第 9 节）
 
 ### 未完成（按优先级排序）
 
-#### P0：爬虫 dry-run 终验 + 清空重爬（当前阻塞项）
-2026-08-21 已用 WebFetch 逐一实测 8 站的列表页/详情页 DOM 并修正配置（URL、翻页、链接过滤、标题/正文/日期 XPath 均按真实页面结构配置），但服务器侧 requests 环境仍需 dry-run 终验（重点是正文/日期提取的实际效果）。
-
-**服务器执行命令**：
-```bash
-cd /opt/policy_reporter
-git pull origin main
-docker compose exec backend python manage.py migrate
-
-# 清空旧政策数据
-docker compose exec backend python manage.py shell -c "
-from report.models import CentralPolicy, LocalPolicy
-CentralPolicy.objects.all().delete()
-LocalPolicy.objects.all().delete()
-print('已清空')
-"
-
-# 先 dry-run 验证 XPath
-docker compose exec backend python manage.py crawl_policies --all --dry-run
-
-# XPath 调好后正式爬取
-docker compose exec backend python manage.py crawl_policies --all
-
-# 重建 RAG 索引
-docker compose exec backend python manage.py build_index
-
-# 跑测试确认无回归
-docker compose exec backend pytest --tb=short -q
-```
-
-**dry-run 输出怎么看**：
-- "找到 X 个链接" — X=0 说明 list_link_xpath 不对，需 curl 看 HTML 调
-- "content=0字" — 说明 detail_content_xpath 不对，需 curl 看详情页 HTML 调
-- "date=None" — 说明 detail_date_xpath 不对
-
-**调 XPath 方法**：curl 拿 HTML → 看 DOM 结构 → 改 crawl_config.json 对应字段
-
 #### P1：Phase E 简历素材
 1 页项目卡片 + 3 分钟话术 + demo 视频 + 架构图（README 已有 mermaid 图，可复用）
+
+### 已知遗留（不阻塞，知悉即可）
+- **财政部约 10 条 502**：mof.gov.cn 子域名网关从新加坡访问随机拒绝（同 URL 时好时坏）。已配 retries=3 递增退避；因按 source_url 去重，**每次重跑会自动重试失败项，多跑几次攒齐**，无需特殊处理
+- **商务部走 jpaas JSON API**：列表由前端 JS 渲染，requests 拿不到，故直调其内部接口（list_api 配置）。若商务部改版导致 API 参数失效，症状是"找到 0 个链接"——届时 curl 列表页找新 API 地址和 webId/pageId 参数
+- **粤文件仅 1 条**：guangdong_tax 站点"粤文件"栏目本身更新少，非爬虫问题
 
 ---
 
@@ -175,20 +144,87 @@ docker compose exec backend pytest --tb=short -q
 
 - 路径：/opt/policy_reporter
 - Docker 三容器：policy_backend / policy_db / policy_frontend
-- cron 定时爬虫：每天 7:00（scripts/crawl.sh）
-- DB 备份：每天 3:00（gzip 到 /opt/backups/），4:00 清理 7 天前备份
+- cron 定时爬虫：**未注册**（用户明确要求需要时再开）。已注册的 cron 只有 DB 备份（每天 3:00 备份到 /opt/backups/，4:00 清理 7 天前）。要开定时爬虫时执行（每天 7:00 爬取+重建索引）：
+  ```bash
+  ( crontab -l 2>/dev/null | grep -v "crawl_policies" ; \
+    echo "0 7 * * * cd /opt/policy_reporter && docker compose exec -T backend python manage.py crawl_policies --all >> /var/log/crawl.log 2>&1 && docker compose exec -T backend python manage.py build_index >> /var/log/crawl.log 2>&1" ) | crontab -
+  ```
+  注意 `-T` 必须加（cron 无 tty 环境不加会静默失败）
 - admin IP 白名单：ADMIN_ALLOWED_IPS 已配在 .env
-- 代码更新流程：`git pull origin main` → 如改了模型需 `migrate` → 如改了代码需 `docker compose up -d --build backend`
+- 代码更新流程：`git pull origin main` → 如改了模型需 `migrate` → **改了任何 backend 代码/配置必须 `docker compose up -d --build backend`**（容器里是构建时打包的代码，不 rebuild 跑的还是旧版，此坑已踩过两次）
 
 ---
 
-## 8. 下一步接手者必读
+## 8. 手动测试与运维指引（接手者必读）
 
-1. 先跑 dry-run 看哪些站 XPath 不对
-2. 逐站调 XPath（curl HTML → 改 crawl_config → 再 dry-run）
-3. XPath 全过后清空 DB + 正式爬取 + 重建索引
-4. 跑一次 agent run 验日报 docx 分类是否正确
-5. 做 Phase E 简历素材
+### 8.1 手动更新政策数据（当前唯一的更新方式，无定时任务）
+
+```bash
+cd /opt/policy_reporter
+
+# 爬取（增量，按 source_url 去重，重复跑安全；失败项下轮自动重试）
+docker compose exec backend python manage.py crawl_policies --all
+
+# 重建 RAG 索引（爬完必跑，否则 Agent rag_search 检索的是旧数据）
+docker compose exec backend python manage.py build_index
+```
+
+**验证数据质量**（4 大类中央/地方都要有数，空正文应为 0）：
+```bash
+docker compose exec backend python manage.py shell -c "
+from report.models import CentralPolicy, LocalPolicy
+from collections import Counter
+print('中央:', dict(Counter(CentralPolicy.objects.values_list('type', flat=True))))
+print('地方:', dict(Counter(LocalPolicy.objects.values_list('type', flat=True))))
+print('空正文:', CentralPolicy.objects.filter(content='').count() + LocalPolicy.objects.filter(content='').count())
+"
+```
+
+基准参考（2026-08-21 首爬）：中央 财政24/税务8/金融33/商贸29，地方 财政20/税务1/金融22/商贸29，共 166 条。
+
+### 8.2 测试 Agent 日报生成（核心业务链路）
+
+前端登录 → 日报页输入日期（如 2026-08-21，库里已有该日期前后数据）→ 发起 Agent Run → 前端每 2 秒轮询进度 → 完成后下载 docx，检查：
+- 日报按 财政/税务/金融/商贸 分类组织
+- 摘要对应正文内容（不是编的）
+- AgentTrace 步骤 ≤15、无死循环
+
+也可只跑单站爬虫测试：`crawl_policies --site mof --dry-run`（site_id 见第 4 节表格）
+
+### 8.3 跑评估框架（量化 Agent 质量）
+
+```bash
+# 基线评估（成功率/平均步数/Critic 触发率/修复率/LLM-judge 评分）
+docker compose exec backend python manage.py run_eval --yes
+
+# 消融实验（baseline / no_critic / no_replanner / no_stall）
+docker compose exec backend python manage.py run_eval --ablation baseline --yes
+docker compose exec backend python manage.py run_eval --all-ablations --yes
+
+# 报告在 backend/eval_reports/ 目录
+```
+
+注意：eval 的 LLM-judge 会调 DeepSeek API，消耗少量额度。
+
+### 8.4 跑测试套件（改代码后确认无回归）
+
+```bash
+docker compose exec backend pytest --tb=short -q
+```
+
+### 8.5 爬虫出问题时的排查流程
+
+症状 → 原因 → 处理：
+- **"找到 0 个链接"** — 站点改版，list_link_xpath 或 URL 失效 → `curl -A "Mozilla/5.0 ... Chrome/120" <列表页URL>` 看 HTML 里的真实链接格式和栏目路径，改 crawl_config.json
+- **"content=0字"** — 详情页改版 → 同上，curl 详情页看正文容器的 class/id，改 detail_content_xpath（多路径用 `|` 联合，代码自动取文本最长节点）
+- **"date=None"** → 日期 XPath 失效（代码有"发布日期/发文日期"文本兜底，一般不易触发）
+- **大量 [HTTP 502]/[HTTP 412]** — 网站限流/反爬。502 多为临时性（重跑即可）；持续 412 需在站点配置加自定义请求头
+- 改完 crawl_config.json 后：`git add/commit` → 推双远端 → 服务器 `git pull` → **`docker compose up -d --build backend`** → dry-run 验证
+
+### 8.6 日志位置
+
+- 爬虫输出：手动跑时直接看终端；开 cron 后在 /var/log/crawl.log
+- Django/Agent：`docker compose logs backend --tail 100`
 
 ---
 
