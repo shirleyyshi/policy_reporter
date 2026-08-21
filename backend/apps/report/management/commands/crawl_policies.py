@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 CONFIG_PATH = Path(__file__).parent / "crawl_config.json"
 DEFAULT_TIMEOUT = 15
 DEFAULT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
 # 政府站点都是北京时间
@@ -84,15 +85,18 @@ def fetch_page(url, encoding="utf-8", timeout=DEFAULT_TIMEOUT):
 
 
 def extract_title(tree, config):
-    """从详情页提取标题。"""
+    """从详情页提取标题。多路径按文档序取第一个非空结果。"""
     xpath = config.get("detail_title_xpath", "")
     if not xpath:
         return ""
-    result = tree.xpath(xpath)
-    if not result:
+    title = ""
+    for r in tree.xpath(xpath):
+        t = (r if isinstance(r, str) else r.text_content()).strip()
+        if t:
+            title = t
+            break
+    if not title:
         return ""
-    title = result[0] if isinstance(result[0], str) else result[0].text_content()
-    title = title.strip()
     # 分割处理（如 gov.cn 的 "标题_分类_网站名"）
     split_char = config.get("detail_title_split")
     if split_char:
@@ -103,15 +107,15 @@ def extract_title(tree, config):
 
 
 def extract_content(tree, config):
-    """从详情页提取正文。"""
+    """从详情页提取正文。多节点匹配时取文本最长的（正文容器文本量最大）。"""
     xpath = config.get("detail_content_xpath", "")
     if not xpath:
         return ""
     nodes = tree.xpath(xpath)
     if not nodes:
         return ""
-    node = nodes[0]
-    # 排除标题区域（上海站的 Article-title-zw）
+    node = max(nodes, key=lambda n: len(n.text_content()))
+    # 排除特定子区域（如相关链接）
     exclude_class = config.get("detail_content_exclude")
     if exclude_class:
         # 克隆节点并移除不需要的子节点
@@ -122,16 +126,35 @@ def extract_content(tree, config):
     return node.text_content().strip()
 
 
+# 页面元数据区常见的日期上下文（"发布日期：2026-08-21" 等）
+DATE_CONTEXT_RE = re.compile(
+    r"(?:发布日期|发文日期|发布时间|成文日期|时间)\s*[：:]\s*"
+    r"(\d{4}[-年.]\d{1,2}[-月.]\d{1,2})"
+)
+DATE_PLAIN_RE = re.compile(r"\d{4}[-年.]\d{1,2}[-月.]\d{1,2}")
+
+
 def extract_date(tree, config):
-    """从详情页提取发布日期。"""
+    """从详情页提取发布日期。XPath 失败时从页面头部文本兜底。"""
     xpath = config.get("detail_date_xpath", "")
-    if not xpath:
-        return None
-    result = tree.xpath(xpath)
-    if not result:
-        return None
-    date_str = result[0] if isinstance(result[0], str) else result[0].text_content()
-    return parse_date(date_str)
+    if xpath:
+        result = tree.xpath(xpath)
+        if result:
+            date_str = result[0] if isinstance(result[0], str) else result[0].text_content()
+            dt = parse_date(date_str)
+            if dt:
+                return dt
+    # 兜底：元数据区（发布日期/发文日期等）通常在页面头部
+    head_text = tree.text_content()[:3000]
+    m = DATE_CONTEXT_RE.search(head_text)
+    if m:
+        dt = parse_date(m.group(1))
+        if dt:
+            return dt
+    m = DATE_PLAIN_RE.search(head_text)
+    if m:
+        return parse_date(m.group(0))
+    return None
 
 
 def crawl_site(config, dry_run=False, max_pages_override=None):
@@ -149,6 +172,8 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
     max_pages = max_pages_override or config.get("max_pages", 1)
     title_filter = config.get("title_filter", [])
     page_url_pattern = config.get("page_url_pattern", "")
+    # 翻页偏移：财政部第 2 页是 index_1.htm（page_offset=-1），多数站是 index_2.html（0）
+    page_offset = config.get("page_offset", 0)
 
     stats = {
         "crawled": 0, "new": 0, "skipped": 0, "filtered": 0,
@@ -162,7 +187,7 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
         if page_num == 1:
             url = list_url
         elif page_url_pattern:
-            url = page_url_pattern.replace("{page}", str(page_num))
+            url = page_url_pattern.replace("{page}", str(page_num + page_offset))
         else:
             # 没配置翻页 pattern，只抓首页
             break

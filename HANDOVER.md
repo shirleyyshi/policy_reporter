@@ -1,7 +1,7 @@
 # Policy_Reporter 项目交接文档
 
 > 创建日期：2026-08-16
-> 当前状态：crawl_config 8 站点已配 + 代码审查修复完成 + 前端下拉框已更新，待服务器 dry-run 调 XPath + 清空重爬
+> 当前状态：8 站点 URL 已逐一实测修正（2026-08-21）+ 爬虫提取逻辑增强，待服务器 dry-run 终验 + 清空重爬
 
 ---
 
@@ -32,9 +32,11 @@
 | 大类 | 中央站点 | 地方站点（广州） |
 |------|---------|-----------------|
 | **财政** | 财政部 | 广州市财政局 |
-| **税务** | 国家税务总局 | 广东省税务局 |
-| **金融** | 中国人民银行 | 广州市地方金融局 |
+| **税务** | 广东省税务局"总局文件"栏目转载（总局官网 JS 渲染无法爬） | 广东省税务局（粤文件） |
+| **金融** | 国家外汇管理局（央行 403 反爬无法访问） | 广州市地方金融局 |
 | **商贸** | 商务部 | 广州市商务局 |
+
+> 2026-08-21 起中央税务/金融用上述替代源：总局官网 chinatax.gov.cn 列表页为 JS 动态渲染（requests 拿不到链接），央行 pbc.gov.cn 对新加坡服务器返回 403。广东税务 zjfg 栏目完整转载总局原文，按标题是否含"广东"区分中央/地方入库。
 
 **分类字段**：`CentralPolicy.type` 和 `LocalPolicy.type`（DB 字段，Agent 用 `classify_policy` 工具读 `type` 做确定性分类，不调 LLM）
 
@@ -51,13 +53,14 @@
 - save_state datetime 序列化 bug 修复
 - episodic memory 序列化 bug 修复
 - crawl_config 配齐 8 站点（中央 4 + 广州 4），分类统一为财政/税务/金融/商贸
+- 2026-08-21 爬虫质量修复：8 站 URL 逐一 WebFetch 实测修正（商务部/广州财政/广东税务 3 个旧 URL 已失效全部更换）；新增 safe（中央金融）+ chinatax_central（中央税务）两个替代源；爬虫逻辑增强（翻页偏移 page_offset、标题取首个非空、正文取最长节点、日期页面文本兜底、完整 Chrome UA）
 - 前端 CentralEditor.vue 分类下拉框已更新为财政/税务/金融/商贸
 - 代码鲁棒性审查 + 修复（详见第 9 节）
 
 ### 未完成（按优先级排序）
 
-#### P0：爬虫 dry-run + 调 XPath + 清空重爬（当前阻塞项）
-crawl_config 已配 8 站点，但详情页 XPath（title/content/date）是基于政府站点常见结构的推断，**需要逐站 dry-run 验证后调**。
+#### P0：爬虫 dry-run 终验 + 清空重爬（当前阻塞项）
+2026-08-21 已用 WebFetch 逐一实测 8 站的列表页/详情页 DOM 并修正配置（URL、翻页、链接过滤、标题/正文/日期 XPath 均按真实页面结构配置），但服务器侧 requests 环境仍需 dry-run 终验（重点是正文/日期提取的实际效果）。
 
 **服务器执行命令**：
 ```bash
@@ -107,18 +110,25 @@ docker compose exec backend pytest --tb=short -q
 | 站点 | site_id | policy_type | default_category | list_url |
 |------|---------|------------|-----------------|----------|
 | 财政部 | mof | central | 财政 | mof.gov.cn/zhengwuxinxi/zhengcefabu/ |
-| 国家税务总局 | chinatax | central | 税务 | chinatax.gov.cn/n810341/n810755/ |
-| 中国人民银行 | pbc | central | 金融 | pbc.gov.cn/zhengcehuobisi/125133/125477/ |
-| 商务部 | mofcom | central | 商贸 | mofcom.gov.cn/zcfb/zc/ |
-| 广州市财政局 | guangzhou_czj | local | 财政 | czj.gz.gov.cn/zlshj/tzgg/ |
-| 广东省税务局 | guangdong_tax | local | 税务 | guangdong.chinatax.gov.cn/site/guangdong/tax/notice/ |
-| 广州市金融局 | guangzhou_jr | local | 金融 | jrjgj.gz.gov.cn/zcgh/ |
+| 中央税务（广东转载总局文件） | chinatax_central | central | 税务 | guangdong.chinatax.gov.cn/gdsw/zcwj/zcwj.shtml |
+| 国家外汇管理局 | safe | central | 金融 | safe.gov.cn/safe/zcfg/index.html |
+| 商务部 | mofcom | central | 商贸 | mofcom.gov.cn/zcfb/zc/index.html |
+| 广州市财政局 | guangzhou_czj | local | 财政 | czj.gz.gov.cn/tzgg/index.html |
+| 广东省税务局（粤文件） | guangdong_tax | local | 税务 | guangdong.chinatax.gov.cn/gdsw/zcwj/zcwj.shtml |
+| 广州市金融局 | guangzhou_jr | local | 金融 | jrjgj.gz.gov.cn/zcgh/index.html |
 | 广州市商务局 | guangzhou_sw | local | 商贸 | sw.gz.gov.cn/xxgk/tzgg/tz/ |
 
-**待调 XPath 字段**（dry-run 后可能需要改）：
-- `list_link_xpath` — 列表页链接提取（每站可能不同）
-- `detail_content_xpath` — 详情页正文提取（每站可能不同）
-- `detail_date_xpath` — 详情页发布日期提取
+**2026-08-21 实测修正记录**：
+- 商务部旧路径 `/article/zcfb/zc/` 已失效 → 新路径 `/zcfb/zc/`
+- 广州财政局 `/zwgk/tzgg/` 已失效 → `/tzgg/`
+- 广东税务局 `/site/guangdong/tax/notice/` 已失效 → `/gdsw/zcwj/zcwj.shtml`
+- 财政部翻页第 2 页实际是 `index_1.htm` → 配置 `page_offset: -1`（其余站 `index_2.html` 起为 0）
+- 中央税务/金融分类的数据来源见第 2 节替代说明
+
+**关键 XPath 字段**（均按真实 DOM 实测配置，多路径用 `|` 联合，代码侧有兜底）：
+- `list_link_xpath` — 列表页链接提取（chinatax_central/guangdong_tax 按标题是否含"广东"分流）
+- `detail_content_xpath` — 正文容器（多节点匹配时代码自动取文本最长者）
+- `detail_date_xpath` — 发布日期（XPath 失败时代码从页面头部文本按"发布日期/发文日期/时间"上下文正则兜底）
 
 ---
 
