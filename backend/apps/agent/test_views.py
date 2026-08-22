@@ -84,27 +84,27 @@ class InferStatusTest(TestCase):
 
 
 class HasDocxTraceTest(TestCase):
-    """测试 _has_docx_trace。"""
+    """测试 has_docx_trace（agent.utils，views 与 eval/metrics 共用）。"""
 
     def test_true_when_format_docx_success(self):
-        from agent.views import _has_docx_trace
+        from agent.utils import has_docx_trace
         run_id = uuid.uuid4()
         _seed_traces(run_id, [
             {'step': 1, 'action': 'actuate', 'tool': 'format_docx', 'output': {'ok': True}},
         ])
-        self.assertTrue(_has_docx_trace(run_id))
+        self.assertTrue(has_docx_trace(run_id))
 
     def test_false_when_format_docx_has_error(self):
-        from agent.views import _has_docx_trace
+        from agent.utils import has_docx_trace
         run_id = uuid.uuid4()
         _seed_traces(run_id, [
             {'step': 1, 'action': 'actuate', 'tool': 'format_docx', 'output': {'error': 'fail'}},
         ])
-        self.assertFalse(_has_docx_trace(run_id))
+        self.assertFalse(has_docx_trace(run_id))
 
     def test_false_when_no_format_docx(self):
-        from agent.views import _has_docx_trace
-        self.assertFalse(_has_docx_trace(uuid.uuid4()))
+        from agent.utils import has_docx_trace
+        self.assertFalse(has_docx_trace(uuid.uuid4()))
 
 
 class AgentRunEndpointTest(TestCase):

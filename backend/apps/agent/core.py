@@ -20,6 +20,7 @@ import time
 import logging
 import threading
 from collections import deque
+from datetime import datetime
 from pathlib import Path
 
 from django.conf import settings
@@ -129,7 +130,10 @@ def _call_critic(state):
     )
     try:
         return _parse_llm_json(response.choices[0].message.content)
-    except (ValueError, json.JSONDecodeError):
+    except (ValueError, json.JSONDecodeError) as e:
+        # 不静默：解析失败必须留痕（此前直接吞掉，问题路径无从排查）
+        raw = (response.choices[0].message.content or '')[:200]
+        logger.warning(f"Critic 输出解析失败，按无需重规划继续: {e}, 原文前200字: {raw!r}")
         return {"needs_replan": False, "replan_hint": ""}
 
 
@@ -503,10 +507,28 @@ def _serialize_state(state: AgentState) -> dict:
     return json.loads(json.dumps(data, default=str))
 
 
+def _restore_datetime(value):
+    """ISO 字符串 → datetime。
+
+    _serialize_state 用 default=str 把 publish_time 转成了字符串，
+    恢复时转回 datetime，保持与未持久化的内存 state 类型一致。
+    clean_policies 的 publish_time 本来就是 str（clean_policy 工具内转换），不在此处理。
+    """
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            return value
+    return value
+
+
 def _deserialize_state(state: AgentState, data: dict, run: AgentRun):
     """从 DB AgentRun 记录恢复 state 字段。"""
     data = data or {}
     state.raw_policies = data.get('raw_policies', [])
+    for p in state.raw_policies:
+        if isinstance(p, dict) and 'publish_time' in p:
+            p['publish_time'] = _restore_datetime(p['publish_time'])
     state.clean_policies = data.get('clean_policies', [])
     state.summary = data.get('summary')
     state.step = data.get('step', 0)

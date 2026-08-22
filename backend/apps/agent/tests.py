@@ -270,6 +270,24 @@ class AgentRunPersistenceTest(TestCase):
         # 三元组 observation 应保留
         self.assertEqual(recovered.last_actions[0][2], '{"fetched": 1}')
 
+    def test_publish_time_restored_as_datetime(self):
+        """raw_policies 的 publish_time 经 DB 往返后应恢复为 datetime 而非 ISO 字符串。"""
+        from datetime import datetime as dt
+        from agent.core import save_state, get_state, _RUN_CACHE
+        run_id = uuid_mod.uuid4()
+        state = AgentState(task_input={'date': '2026-07-13'})
+        state.raw_policies = [{
+            'id': 1, 'title': '政策A', 'source': 'central',
+            'publish_time': dt(2026, 7, 13, 10, 30),
+        }]
+        save_state(run_id, state)
+
+        _RUN_CACHE.clear()
+        recovered = get_state(run_id)
+        restored = recovered.raw_policies[0]['publish_time']
+        self.assertIsInstance(restored, dt)
+        self.assertEqual(restored, dt(2026, 7, 13, 10, 30))
+
     def test_status_transitions_persist(self):
         """状态转换 running → done 应正确持久化。"""
         from agent.core import save_state, get_state, _RUN_CACHE
