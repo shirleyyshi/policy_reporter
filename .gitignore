@@ -35,9 +35,6 @@ staticfiles/
 backend/chroma_db/
 chroma_db/
 
-# config_policy_spider 的 __pycache__（爬虫运行时生成）
-config_policy_spider/**/__pycache__/
-
 # Eval 报告输出（每次运行动态生成）
 backend/eval_reports/
 eval_reports/
