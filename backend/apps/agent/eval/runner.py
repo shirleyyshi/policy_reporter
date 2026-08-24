@@ -165,7 +165,7 @@ class EvalRunner:
         avg_critic = sum(r["metrics"]["critic_count"] for r in valid) / len(valid)
         avg_errors = sum(r["metrics"]["error_count"] for r in valid) / len(valid)
 
-        # Critic 修复率（只算有 Critic 触发的 run）
+        # Critic 建议重规划率（只算有 Critic 触发的 run）
         replan_rates = [
             r["metrics"]["critic_replan_rate"]
             for r in valid

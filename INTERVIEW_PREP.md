@@ -69,7 +69,7 @@
 ### Q5："ablation 结论可信吗？数据量这么少"
 
 **回答要点**：
-> "数据量确实有限（33 条政策），ablation 更大的价值是验证组件设计的合理性，而非追求统计显著性。比如 no_critic 配置下 success_rate 下降，能说明 Critic 有作用；no_replanner 配置下 Critic 触发率不降但修复率降，能说明 Critic 必须配套 Replanner 才能转化诊断为修复。"
+> "数据量确实有限，ablation 更大的价值是验证组件设计的合理性，而非追求统计显著性。比如 no_critic 配置下 success_rate 下降，能说明 Critic 有作用；no_replanner 配置下 Critic 触发率不降但建议重规划率转化不了改进行动，能说明 Critic 必须配套 Replanner。（这个指标原来叫'修复率'，我后来改成了'建议重规划率'——建议不等于修复，命名应该跟统计口径一致。）"
 >
 > "后续扩数据后会做多 seed 平均 + 方差分析。当前 Actuator temperature=0.3 有随机性，但 Critic temperature=0 是确定性的，所以 Critic 相关的结论相对稳定。"
 

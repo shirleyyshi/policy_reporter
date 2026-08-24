@@ -224,6 +224,26 @@ class PolicyDetailViewTest(TestCase):
         self.assertEqual(resp.status_code, 400)
 
 
+class HealthViewTest(TestCase):
+    """测试 health 端点（E4a，供探活）。"""
+
+    def test_anonymous_200_ok(self):
+        """匿名可访问（探活不带凭据），DB 正常时返回 200 + status ok。"""
+        resp = self.client.get('/api/health/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['status'], 'ok')
+        self.assertTrue(resp.data['db'])
+
+    def test_db_failure_503(self):
+        """DB 不可用时返回 503 + degraded。"""
+        from unittest.mock import patch
+        from django.db import connection
+        with patch.object(connection, 'cursor', side_effect=Exception('db down')):
+            resp = self.client.get('/api/health/')
+        self.assertEqual(resp.status_code, 503)
+        self.assertEqual(resp.data['status'], 'degraded')
+
+
 class GetPolicyCountsViewTest(TestCase):
     """测试 get_policy_counts 视图。"""
 

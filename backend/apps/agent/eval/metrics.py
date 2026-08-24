@@ -122,7 +122,7 @@ def critic_count(run_id) -> int:
 
 def critic_replan_rate(run_id) -> Optional[float]:
     """
-    Critic 修复率：触发 replan 的比例。
+    Critic 建议重规划率：触发 replan 的比例（建议≠修复，命名避免夸大）。
     返回 None 表示没有 Critic 触发（无法计算）。
     """
     critiques = AgentTrace.objects.filter(run_id=run_id, action='critique')

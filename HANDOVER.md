@@ -24,7 +24,7 @@
 - Agent 的政策输入来自数据库，不会在运行日报时实时抓网页；`save_to_db` 是为保持工具集完整而保留的 stub，不是实际写库步骤。
 - AgentRun 状态和已生成 docx 能在重启后读取；但后台 Agent 线程、等待人工回答的事件都在单个进程内。**进程重启不会续跑执行中的任务**，多 worker 下也不能保证人工回答命中原运行线程。
 - 当前服务是 HTTP/IP 部署，没有域名和 HTTPS。不要在简历、README 或面试中说"已配 HTTPS""生产级"或"高并发"。
-- 测试与消融数据是历史结果：仓库当前 209 个测试（含 config/ 中间件、D1 用户隔离与 D2 详情端点测试），CI 覆盖率门槛 80%（README 记录最近一次 82%）；README 的消融对比表来自历史 eval 运行，`backend/eval_reports/` 报告目录未入库，如需复现需重跑 `run_eval`（会调用 DeepSeek 产生费用）。
+- 测试与消融数据是历史结果：仓库当前 211 个测试（含 config/ 中间件、D1 用户隔离、D2 详情端点与 E4a 健康检查测试），CI 覆盖率门槛 80%（README 记录最近一次 82%）；README 的消融对比表来自历史 eval 运行，`backend/eval_reports/` 报告目录未入库，如需复现需重跑 `run_eval`（会调用 DeepSeek 产生费用）。
 
 ## 2. 架构和数据流
 
@@ -151,8 +151,8 @@ docker compose exec backend pytest --tb=short -q
 
 1. 让 RAG 命中的正文片段明确参与摘要上下文，或把它定位为"检索建议"。当前 `rag_search` 主要把标题、链接和相似度返回给模型，不能证明其直接补充了摘要事实。
 2. 把评估集固定为版本化的匿名样本和预期检查，不要完全依赖当前数据库动态发现用例；记录模型版本、提示词版本、随机参数和原始报告，并将 `eval_reports/` 产物入库以便复现。
-3. "Critic 修复率"应改称"Critic 建议重规划率"，除非定义并验证"建议后任务确实恢复成功"的分子与分母。
-4. 增加接口分页、日期格式校验、结构化日志、健康检查、爬虫失败告警、robots/站点规则记录和政策修订检测。
+3. ~~"Critic 修复率"改名"Critic 建议重规划率"~~ 已完成（2026-08-24）：代码（metrics/reporter/runner/run_eval 显示文案，英文 key `critic_replan_rate` 本就准确未动）、README 消融表、两份面试文档全部更名。命名理由：建议≠修复，指标只统计"Critic 提出重规划建议"的比例，不能证明建议后任务恢复成功——面试被问改名原因时这正是体现指标严谨性的加分点（话术已写入 PLAYBOOK T10 与 PREP Q5）。
+4. ~~健康检查~~ 已完成（2026-08-24）：`GET /api/health/`（匿名，DB 异常 503）+ backend 容器 healthcheck + frontend `condition: service_healthy`。其余项（接口分页、日期格式校验、结构化日志、爬虫失败告警、robots 记录、政策修订检测）明确不做，理由与口径见 NEXT_STEPS E 区。
 
 ### 可以删减或降级的表述
 

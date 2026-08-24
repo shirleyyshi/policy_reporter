@@ -24,7 +24,7 @@
 - [ ] B3. 次日验证：8 点后 `tail -30 /var/log/crawl.log` 应见三段日志 + 各站点统计，无 telemetry 噪音（已修复，提交 5d747bc）
 - [x] B4. 服务器同步最新提交——已完成（2026-08-24）：git pull（含 crawl.sh 权限位冲突处理：checkout + `git config core.filemode false`）→ backend 重建 → media 验证
 - [x] B5. frontend 强制重建加载新 nginx.conf（`--force-recreate`，单文件挂载 inode 陷阱，见 HANDOVER §8）→ media 404 / static 200 / 首页 200 三项验证
-- [ ] B6. 同步 D1/D2/D3（一次操作）：`git pull` → `docker compose up -d --build backend frontend`（迁移 0003 自动执行 + 前端新页面/拦截器打镜像）→ 验证：① 演示账号重跑 Agent（旧 run 无归属不显示）② 政策列表标题可点击进详情 ③ 注册第二账号互不可见对方 run
+- [ ] B6. 同步 D1/D2/D3/E3/E4a（一次操作）：`git pull` → `docker compose up -d --build backend frontend`（迁移 0003 自动执行 + 前端新页面/拦截器打镜像 + backend 挂 healthcheck）→ 验证：① `docker compose ps` 应见 policy_backend `(healthy)` ② `curl http://localhost/api/health/` 应 `{"status":"ok","db":true}` ③ 演示账号重跑 Agent（旧 run 无归属不显示）④ 政策列表标题可点击进详情 ⑤ 注册第二账号互不可见对方 run
 
 ### 脚本验证结论（2026-08-24，供面试参考）
 
@@ -43,14 +43,16 @@
 - [x] D1. AgentRun 用户隔离——已完成（2026-08-24）：`user` 外键 + 迁移 0003；trace/answer/download 越权 404（不泄露存在性）、列表只含本人、历史 run（user=null）不可见、未登录 401；新增 7 个隔离测试，全量 201 passed。**部署后需用演示账号重跑一次 Agent**（旧 run 无归属不再显示，T6 历史回看依赖）
 - [x] D2. 政策详情页 + 来源/发布日期/采集日期展示——已完成（2026-08-24）：`/api/policies/detail/` + `PolicyDetail.vue`（`/policy/:source/:id`），编辑页标题可点击；详情页含原文链接与采集时间/手动录入标记。新增 8 个后端测试（含非数字 id 404、source 校验 400）
 - [x] D3. 前端接 refresh token——已完成（2026-08-24）：401 拦截器单飞刷新 + 重放原请求，登录接口 401 不触发；access 2h 过期静默续期
-- [ ] D4. Celery/RQ + Redis 异步化——2-3 天，最大一块；时间不够就不做，但 PLAYBOOK §4.2 "多 worker 边界 + Redis 方案"必须练熟（不做也是面试考点）
+- [x] D4. Celery/RQ + Redis 异步化——**决定不做**（2026-08-24）：工作量 2-3 天且演示价值增量低。面试不回避，按 PLAYBOOK §4.2 话术讲"多 worker 边界 + Redis 方案"（当前单 worker 内线程 + DB 状态持久化的取舍，以及迁移路径），见 G3
 
-## E. P2 可信度改进（不实施，但要能说出边界与方向）
+## E. P2 可信度改进（2026-08-24 分级：E3/E4a 做，其余明确不做）
 
-- [ ] E1. RAG 正文片段真正参与摘要上下文（当前 rag_search 只返回标题/链接/相似度）
-- [ ] E2. 评估集版本化 + `eval_reports/` 入库（README 消融表目前无法复现）
-- [ ] E3. "Critic 修复率"改名"建议重规划率"（README + 话术口径）
-- [ ] E4. 接口分页、健康检查、爬虫失败告警、robots 记录
+- [ ] E1. RAG 正文片段真正参与摘要上下文——**不做**：会引出 embedding 选型/chunk 策略/rerank/效果评估一连串深水区提问，当前口径"rag_search 是检索建议"反而干净（话术见 PLAYBOOK §3）
+- [ ] E2. 评估集版本化 + `eval_reports/` 入库——**不做**：重跑消融要花 DeepSeek 费用；面试口径"历史结果，复现路径已知（run_eval），评估方法论可讲"（PLAYBOOK §5）
+- [x] E3. "Critic 修复率"改名"建议重规划率"——已完成（2026-08-24）：代码显示文案（metrics/reporter/runner/run_eval）+ README 消融表 + PLAYBOOK T10 + PREP Q5 全部更名；英文 key `critic_replan_rate` 本就准确未动。改名理由本身是面试加分点（指标口径严谨）
+- [x] E4a. 健康检查端点 `/api/health/`——已完成（2026-08-24）：匿名可访问（探活不带凭据），返回 status/db；DB 异常返回 503。docker-compose backend 挂 healthcheck（python urllib 探活），frontend 改为 `condition: service_healthy` 启动顺序。新增 2 个测试
+- [ ] E4b. 接口分页——**不做**：166 条数据分页价值低，且引出深度分页/cursor 等提问；前端三处列表全要改
+- [ ] E4c. 爬虫失败告警 / robots 记录——**不做**：需接通知渠道（第三方依赖）；现状口径"失败不落库 + 日志可查 + 每周抽检（F 区）"已自洽
 
 ## F. 周期性运维（每周约 10 分钟）
 
@@ -62,7 +64,7 @@
 ## G. 面试准备（投递前 1-2 周集中做）
 
 - [ ] G1. 按 `INTERVIEW_PLAYBOOK.md` §6 的 24 小时清单逐项执行（demo 账号、D1/D2 日期、预跑 T4/T5、容器 healthy、余额）
-- [ ] G2. 背熟核心数字：166 条 / 194 测试 / 80% 覆盖率门槛 / 消融表
+- [ ] G2. 背熟核心数字：166 条 / 211 测试 / 80% 覆盖率门槛 / 消融表（指标口径：建议重规划率）
 - [ ] G3. 练到脱口而出：§4.3"广东不是上海"、§4.2"多 worker 边界 + Redis 方案"
 - [ ] G4. 3 分钟 STAR 介绍（§1.3）对着镜子讲两遍
 

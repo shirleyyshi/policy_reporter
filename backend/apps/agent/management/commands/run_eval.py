@@ -109,7 +109,7 @@ class Command(BaseCommand):
 
             # 打印对比摘要
             self.stdout.write(self.style.MIGRATE_HEADING("\n===== 对比摘要 ====="))
-            self.stdout.write(f"{'配置':<15} {'成功率':<10} {'步数':<8} {'Critic':<8} {'修复率':<10} {'judge':<8} {'耗时':<8}")
+            self.stdout.write(f"{'配置':<15} {'成功率':<10} {'步数':<8} {'Critic':<8} {'建议重规划率':<12} {'judge':<8} {'耗时':<8}")
             self.stdout.write("-" * 67)
             for report in reports:
                 agg = report["aggregate"]
@@ -156,6 +156,6 @@ class Command(BaseCommand):
         self.stdout.write(f"  平均步数: {agg.get('avg_step_count', '-')}")
         self.stdout.write(f"  平均 Critic 触发: {agg.get('avg_critic_count', '-')}")
         if agg.get('avg_critic_replan_rate') is not None:
-            self.stdout.write(f"  Critic 修复率: {agg['avg_critic_replan_rate']:.1%}")
+            self.stdout.write(f"  Critic 建议重规划率: {agg['avg_critic_replan_rate']:.1%}")
         self.stdout.write(f"  LLM-judge 平均分: {agg.get('avg_llm_judge_score', '-')} / 5")
         self.stdout.write(f"  总耗时: {agg.get('total_duration_sec', '-')}s")

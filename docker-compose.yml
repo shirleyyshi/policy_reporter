@@ -58,6 +58,13 @@ services:
       # 持久化 media 目录（Agent 生成的 docx 不随容器重启丢失）
       - backend_media:/app/media
       - backend_static:/app/staticfiles
+    # 探活走 /api/health/（匿名端点，DB 异常时返回 503，容器会显示 unhealthy）
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health/', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
   # ===== Vue 前端（Nginx 反代） =====
   frontend:
@@ -65,7 +72,8 @@ services:
     container_name: policy_frontend
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "80:80"
     volumes:

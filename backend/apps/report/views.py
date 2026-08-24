@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.http import HttpResponse
 from .models import CentralPolicy, LocalPolicy
@@ -303,6 +303,26 @@ def get_policy_counts(request):
         "central_count": central_count,
         "local_count": local_count
     })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health(request):
+    """健康检查（匿名可访问，供负载均衡/容器探活）。
+
+    只暴露存活状态与 DB 连通性，不含版本、数量等细节。
+    """
+    from django.db import connection
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+        db_ok = True
+    except Exception:
+        db_ok = False
+    return Response(
+        {'status': 'ok' if db_ok else 'degraded', 'db': db_ok},
+        status=200 if db_ok else 503,
+    )
 
 
 @api_view(['GET'])

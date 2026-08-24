@@ -37,7 +37,7 @@ def to_markdown(report: dict) -> str:
         f"| **成功率** | **{agg.get('success_rate', 0):.1%}** |",
         f"| 平均步数 | {agg.get('avg_step_count', '-')} |",
         f"| 平均 Critic 触发 | {agg.get('avg_critic_count', '-')} |",
-        f"| Critic 修复率 | {_fmt_pct(agg.get('avg_critic_replan_rate'))} |",
+        f"| Critic 建议重规划率 | {_fmt_pct(agg.get('avg_critic_replan_rate'))} |",
         f"| 平均错误数 | {agg.get('avg_error_count', '-')} |",
         f"| LLM-judge 平均分 | {agg.get('avg_llm_judge_score', '-')} / 5 |",
         f"| 平均耗时 | {agg.get('avg_duration_sec', '-')}s |",
@@ -98,7 +98,7 @@ def to_ablation_markdown(reports: list[dict]) -> str:
         "",
         "## 聚合对比",
         "",
-        "| 配置 | 成功率 | 平均步数 | Critic 触发 | Critic 修复率 | LLM-judge | 平均耗时 |",
+        "| 配置 | 成功率 | 平均步数 | Critic 触发 | 建议重规划率 | LLM-judge | 平均耗时 |",
         "|------|--------|----------|-------------|---------------|-----------|----------|",
     ]
 
