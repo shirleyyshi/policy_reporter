@@ -182,7 +182,7 @@ docker compose exec backend pytest --tb=short -q
 
 ## 9. 文档地图与清理建议
 
-当前根目录只保留四份有明确用途的文档：`README.md` 负责项目说明，`HANDOVER.md` 负责交接，`INTERVIEW_PLAYBOOK.md` 负责演示与简历素材，`INTERVIEW_PREP.md` 负责央企内网改造问答。此前的历史审计、阶段总结和 TODO 文档内容已吸收到本文及面试材料中，不再单独保留，避免过时结论和悬空引用。
+当前根目录只保留五份有明确用途的文档：`README.md` 负责项目说明，`HANDOVER.md` 负责交接，`NEXT_STEPS.md` 负责后续待办的勾选跟踪，`INTERVIEW_PLAYBOOK.md` 负责演示与简历素材，`INTERVIEW_PREP.md` 负责央企内网改造问答。此前的历史审计、阶段总结和 TODO 文档内容已吸收到本文及面试材料中，不再单独保留，避免过时结论和悬空引用。
 
 其他清理项：
 
