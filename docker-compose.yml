@@ -59,12 +59,14 @@ services:
       - backend_media:/app/media
       - backend_static:/app/staticfiles
     # 探活走 /api/health/（匿名端点，DB 异常时返回 503，容器会显示 unhealthy）
+    # 细节：127.0.0.1 避免 IPv6 解析问题；ProxyHandler({}) 绕过容器内可能注入的
+    # http_proxy 环境变量（urllib 会尊重代理导致探活打到代理上失败）
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health/', timeout=3).status == 200 else 1)"]
+      test: ["CMD", "python", "-c", "import sys, urllib.request as u; sys.exit(0 if u.build_opener(u.ProxyHandler({})).open('http://127.0.0.1:8000/api/health/', timeout=3).status == 200 else 1)"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 40s
+      start_period: 60s
 
   # ===== Vue 前端（Nginx 反代） =====
   frontend:
