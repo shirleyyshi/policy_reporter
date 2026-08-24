@@ -8,19 +8,27 @@
 - [x] A1. `git pull origin main`，然后 `docker compose up -d`（端口映射变更必须重建全部容器，仅 `--build backend` 不够）
 - [x] A2. `.env` 留空 `ADMIN_ALLOWED_IPS`（=不启用白名单，admin 另有登录密码兜底）
 - [x] A3. 验证端口已收窄：`docker compose ps` 正常 + `ss -tlnp | grep -E '3306|8000'` 只显示 127.0.0.1 绑定（已确认）
-- [ ] A4. 容器内回归：先 `docker compose up -d --build backend` **重建镜像**（`up -d` 不会重建，容器内仍是 8 天前旧代码，跑出 185 个测试含 4 个已知陈旧失败），再 `docker compose exec backend pytest --tb=short -q` 应 194 passed
+- [x] A4. 容器内回归：已重建镜像并确认 194 passed（2026-08-24）
 - [x] A5. 浏览器走 Nginx 入口确认登录/首页正常
 
 ## A2. 同步 2026-08-24 静态文件修复（C2 产物）
 
-- [ ] A6. `git pull` 后 `docker compose up -d`（frontend 新增共享卷挂载，会重建 frontend 容器）
-- [ ] A7. 验证 admin 静态样式：浏览器开 `http://<服务器IP>/admin/`，页面应有完整 CSS（不再是纯文本布局）
-- [ ] A8. 顺手验证 `http://<服务器IP>/media/` 应 404（已移除暴露，docx 走鉴权 API 下载）
+- [x] A6. `git pull` 后 `docker compose up -d`——已完成，frontend 已重建（2026-08-24）
+- [x] A7. 验证 admin 静态样式：`curl http://localhost/static/admin/css/base.css` 返回 200（2026-08-24）
+- [x] A8. 验证 `/media/`——首次测得 200，系 SPA 兜底返回 index.html（无文件泄露，语义误导）；已加显式 404 并推送（提交 fb78f8b），服务器拉取重建后应为 404
 
 ## B. 一次性运维
 
-- [ ] B1. 注册 cron 每日 8:00 采集：`scripts/crawl.sh` 已就绪，按脚本头部注释注册（HANDOVER §5）
-- [ ] B2. 注册时确认 cron 脚本里含采集后 `build_index` 重建索引（否则 RAG 检索旧索引）
+- [~] B1. 注册 cron 每日 8:00 采集——进行中（2026-08-24）：脚本已手动跑通（14 页/176 条，新增 3 条，索引重建正常）；`crontab -e` 加 `0 8 * * * /opt/policy_reporter/scripts/crawl.sh >> /var/log/crawl.log 2>&1` 后 `crontab -l` 确认
+- [x] B2. 确认 cron 脚本含 build_index——已验证：脚本内采集后自动重建索引（本次输出"中央 103 + 地方 73 = 176 条"）
+- [ ] B3. 次日验证：8 点后 `tail -30 /var/log/crawl.log` 应见三段日志 + 各站点统计，无 telemetry 噪音（已修复，提交 5d747bc）
+- [ ] B4. 服务器同步最新两个提交（fb78f8b media 404 + 5d747bc 遥测关闭）：`git pull` → `docker compose up -d --build backend` → curl 验证 `/media/` 为 404
+
+### 脚本验证结论（2026-08-24，供面试参考）
+
+- 增量去重正常：161 条跳过、0 重复入库；失败详情页不写库（财政部 12/34 详情页 502 属新加坡 IP 访问 mof 子域的已知环境问题，每次重跑有概率补上）
+- 全程 18 分钟：礼貌限速（1~3s/详情页）+ 502 重试退避（3/6/9s）的预期成本
+- 已知边界：商务部 jpaas API 第 2 页返回同第 1 页（去重兜住）；粤文件共享列表页仅 1 条命中
 
 ## C. P0 剩余安全项（2026-08-24 结项）
 
@@ -68,6 +76,8 @@ A → B → G → D1 + D2 → 其余按余量取舍。C/E 做不完的价值在�
 
 ## 已完成存档（2026-08-24）
 
-- 服务器同步 2026-08-23 修复：端口收窄已验证（A1-A3、A5）
-- C2 静态文件服务：nginx 挂共享卷直接服务 /static/，移除 /media/ 暴露
+- 服务器同步 2026-08-23 修复：端口收窄已验证（A1-A3、A5），镜像重建后 194 passed（A4）
+- C2 静态文件服务：nginx 挂共享卷直接服务 /static/（A6-A7 已验证 200）
+- /media/ 显式 404（提交 fb78f8b）、ChromaDB 遥测噪音关闭（提交 5d747bc）
+- crawl.sh 双修复：Docker 自动识别（2c54d27）+ python -u 禁用输出缓冲（1db604d），手动全量跑通
 - C1/C3 安全项降级为不做，面试口径固定
