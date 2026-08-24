@@ -1,4 +1,5 @@
 import uuid
+from django.conf import settings
 from django.db import models
 
 
@@ -36,6 +37,13 @@ class AgentRun(models.Model):
     trace 在 AgentTrace 表，docx 在 media/agent_docx/{run_id}.docx。
     """
     run_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, db_index=True)
+    # 创建者。nullable：功能上线前的历史 run 无归属，隔离生效后任何用户不可见
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.CASCADE,
+        related_name='agent_runs',
+    )
     status = models.CharField(max_length=20, default='running')  # running/waiting_human/done/failed
     step = models.IntegerField(default=0)
     task_input = models.JSONField(default=dict)

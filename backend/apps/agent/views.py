@@ -17,10 +17,20 @@ from rest_framework.response import Response
 from rest_framework import status as http_status
 
 from .core import run_agent_async, get_state, get_docx, submit_answer
-from .models import AgentTrace
+from .models import AgentTrace, AgentRun
 from .utils import has_docx_trace
 
 logger = logging.getLogger(__name__)
+
+
+def _get_owned_run(run_id, user):
+    """取属于当前用户的 AgentRun；不存在或不属于该用户返回 None。
+
+    归属校验统一走这里，所有 run 级端点（trace/answer/download）共用。
+    不属于本人时与不存在同响应（404），不泄露 run 的存在性。
+    历史 run（user 为 null）对所有人不可见。
+    """
+    return AgentRun.objects.filter(run_id=run_id, user=user).first()
 
 
 def _infer_status(run_id):
@@ -59,7 +69,7 @@ def agent_run(request):
         )
 
     try:
-        run_id = run_agent_async(date, legal_text)
+        run_id = run_agent_async(date, legal_text, user=request.user)
     except Exception as e:
         logger.exception("Agent 启动异常")
         return Response(
@@ -75,13 +85,13 @@ def agent_run(request):
 
 @api_view(['GET'])
 def agent_trace(request, run_id):
-    """查询某次 run 的 trace（从 DB 读）。"""
-    traces = AgentTrace.objects.filter(run_id=run_id).order_by('step')
-    if not traces.exists():
+    """查询某次 run 的 trace（从 DB 读，仅本人可见）。"""
+    if not _get_owned_run(run_id, request.user):
         return Response(
             {'error': 'run_id 不存在'},
             status=http_status.HTTP_404_NOT_FOUND
         )
+    traces = AgentTrace.objects.filter(run_id=run_id).order_by('step')
     trace_list = [
         {
             'step': t.step,
@@ -118,7 +128,12 @@ def agent_trace(request, run_id):
 
 @api_view(['GET'])
 def agent_download(request, run_id):
-    """下载某次 run 生成的 docx。"""
+    """下载某次 run 生成的 docx（仅本人）。"""
+    if not _get_owned_run(run_id, request.user):
+        return Response(
+            {'error': 'docx 未生成（run 不存在或未产出 docx）'},
+            status=http_status.HTTP_404_NOT_FOUND
+        )
     docx_bytes = get_docx(run_id)
     if not docx_bytes:
         return Response(
@@ -145,6 +160,11 @@ def agent_answer(request, run_id):
             {'error': 'answer 为必填项'},
             status=http_status.HTTP_400_BAD_REQUEST
         )
+    if not _get_owned_run(run_id, request.user):
+        return Response(
+            {'error': 'run_id 不存在'},
+            status=http_status.HTTP_404_NOT_FOUND
+        )
     ok = submit_answer(run_id, answer)
     if not ok:
         return Response(
@@ -156,9 +176,17 @@ def agent_answer(request, run_id):
 
 @api_view(['GET'])
 def agent_runs_list(request):
-    """列出所有历史 run（从 DB 聚合，按时间倒序）。"""
+    """列出当前用户的历史 run（从 DB 聚合，按时间倒序）。
+
+    隔离：只聚合 AgentRun.user = request.user 的 run。
+    历史 run（user 为 null）不出现在任何人的列表里。
+    """
+    owned_run_ids = list(
+        AgentRun.objects.filter(user=request.user).values_list('run_id', flat=True)
+    )
     runs = (
         AgentTrace.objects
+        .filter(run_id__in=owned_run_ids)
         .values('run_id')
         .annotate(
             step_count=Max('step'),

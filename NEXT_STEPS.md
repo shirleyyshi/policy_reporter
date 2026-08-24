@@ -24,6 +24,7 @@
 - [ ] B3. 次日验证：8 点后 `tail -30 /var/log/crawl.log` 应见三段日志 + 各站点统计，无 telemetry 噪音（已修复，提交 5d747bc）
 - [x] B4. 服务器同步最新提交——已完成（2026-08-24）：git pull（含 crawl.sh 权限位冲突处理：checkout + `git config core.filemode false`）→ backend 重建 → media 验证
 - [x] B5. frontend 强制重建加载新 nginx.conf（`--force-recreate`，单文件挂载 inode 陷阱，见 HANDOVER §8）→ media 404 / static 200 / 首页 200 三项验证
+- [ ] B6. 同步 D1 用户隔离：`git pull` → `docker compose up -d --build backend`（含迁移 0003，entrypoint 自动 migrate）→ 演示账号登录重跑一次 Agent → 用另一账号验证看不到对方 run
 
 ### 脚本验证结论（2026-08-24，供面试参考）
 
@@ -39,7 +40,7 @@
 
 ## D. P1 演示价值提升（按面试 ROI 排序，均可交给 AI 实现）
 
-- [ ] D1. AgentRun 用户隔离——加 user 外键 + queryset 过滤，半天；多用户系统必问点
+- [x] D1. AgentRun 用户隔离——已完成（2026-08-24）：`user` 外键 + 迁移 0003；trace/answer/download 越权 404（不泄露存在性）、列表只含本人、历史 run（user=null）不可见、未登录 401；新增 7 个隔离测试，全量 201 passed。**部署后需用演示账号重跑一次 Agent**（旧 run 无归属不再显示，T6 历史回看依赖）
 - [ ] D2. 政策详情页 + 来源/发布日期/采集日期展示——让"可追溯"从口号变页面，直接支撑演示 T2
 - [ ] D3. 前端接 refresh token——当前 access token 2 小时过期即被踢出
 - [ ] D4. Celery/RQ + Redis 异步化——2-3 天，最大一块；时间不够就不做，但 PLAYBOOK §4.2 "多 worker 边界 + Redis 方案"必须练熟（不做也是面试考点）

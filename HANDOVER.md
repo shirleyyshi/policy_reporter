@@ -24,7 +24,7 @@
 - Agent 的政策输入来自数据库，不会在运行日报时实时抓网页；`save_to_db` 是为保持工具集完整而保留的 stub，不是实际写库步骤。
 - AgentRun 状态和已生成 docx 能在重启后读取；但后台 Agent 线程、等待人工回答的事件都在单个进程内。**进程重启不会续跑执行中的任务**，多 worker 下也不能保证人工回答命中原运行线程。
 - 当前服务是 HTTP/IP 部署，没有域名和 HTTPS。不要在简历、README 或面试中说"已配 HTTPS""生产级"或"高并发"。
-- 测试与消融数据是历史结果：仓库当前 194 个测试（含 config/ 下中间件测试），CI 覆盖率门槛 80%（README 记录最近一次 82%）；README 的消融对比表来自历史 eval 运行，`backend/eval_reports/` 报告目录未入库，如需复现需重跑 `run_eval`（会调用 DeepSeek 产生费用）。
+- 测试与消融数据是历史结果：仓库当前 201 个测试（含 config/ 下中间件测试与 D1 用户隔离测试），CI 覆盖率门槛 80%（README 记录最近一次 82%）；README 的消融对比表来自历史 eval 运行，`backend/eval_reports/` 报告目录未入库，如需复现需重跑 `run_eval`（会调用 DeepSeek 产生费用）。
 
 ## 2. 架构和数据流
 
@@ -142,7 +142,7 @@ docker compose exec backend pytest --tb=short -q
 
 ### P1：提升演示与多用户价值
 
-1. 为 `AgentRun` 关联创建用户并限制列表、trace、docx 下载到本人；现在所有已登录用户可查看所有运行记录。
+1. ~~AgentRun 用户隔离~~ 已完成（2026-08-24）：`AgentRun.user` 外键（迁移 `0003`）+ 所有 run 级端点归属校验。trace/answer/download 越权访问返回 404（与不存在同响应，不泄露存在性）；列表只聚合本人 run。历史 run（user 为 null）对所有人不可见——**部署后演示账号需重新跑一次 Agent**，否则 T6 历史回看为空。归属校验前置后，视图层 `_infer_status` 回退分支实际不可达（AgentRun 缺失已先被 404 拦截），函数保留作防御。
 2. 增加政策详情页、来源筛选、发布日期/采集日期展示和失败采集报表。面试演示应能清楚说明一条数据从何处来、何时采集、是否可追溯。
 3. 将后台线程迁移到 Celery/RQ + Redis，人工介入用共享状态或消息队列；任务要有可取消、超时、失败重试和重启恢复语义。
 4. 前端接入 refresh token（现在存了但未使用，access token 2 小时过期后只能重新登录）。

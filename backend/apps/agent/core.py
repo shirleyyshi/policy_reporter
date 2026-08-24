@@ -406,10 +406,11 @@ def run_agent(date, legal_text="", config=None):
     return run_id, state
 
 
-def run_agent_async(date, legal_text="", config=None):
+def run_agent_async(date, legal_text="", config=None, user=None):
     """
     异步模式（API 用）。启动后台线程，立即返回 run_id。
     ask_human 通过回调暂停等待人工介入。
+    user: 发起用户（AgentRun.user 归属，用于列表/详情/下载隔离）。
     """
     run_id = uuid.uuid4()
     state = AgentState(task_input={"date": date, "legal_text": legal_text})
@@ -418,7 +419,7 @@ def run_agent_async(date, legal_text="", config=None):
     # A3: 检索相似历史 run 经验，注入 context_hints 供 LLM 参考
     state.context_hints = retrieve_episodic_memory(f"财税政策日报 {date}")
     _RUN_CACHE[str(run_id)] = state
-    save_state(run_id, state)  # 创建 AgentRun 记录
+    save_state(run_id, state, user=user)  # 创建 AgentRun 记录
 
     def _thread_target():
         try:
@@ -551,24 +552,28 @@ def _deserialize_state(state: AgentState, data: dict, run: AgentRun):
     # pending_question 不恢复
 
 
-def save_state(run_id, state: AgentState):
+def save_state(run_id, state: AgentState, user=None):
     """持久化 state 到 DB。
 
     每次工具调用后调用，确保 gunicorn 多 worker 下 state 可见、服务重启可恢复。
     用 update_or_create 幂等：首次 create，后续 update。
+    user 仅在创建时传入；后续 update 不带 user，不覆盖已有归属。
     """
     run_id_str = str(run_id)
+    defaults = {
+        'status': state.status,
+        'step': state.step,
+        'task_input': state.task_input,
+        'state_json': _serialize_state(state),
+        'summary': state.summary or '',
+        'docx_path': f'media/agent_docx/{run_id_str}.docx' if state.docx_bytes else None,
+        'error': 'see AgentTrace for details' if state.status == 'failed' else None,
+    }
+    if user is not None:
+        defaults['user'] = user
     AgentRun.objects.update_or_create(
         run_id=run_id_str,
-        defaults={
-            'status': state.status,
-            'step': state.step,
-            'task_input': state.task_input,
-            'state_json': _serialize_state(state),
-            'summary': state.summary or '',
-            'docx_path': f'media/agent_docx/{run_id_str}.docx' if state.docx_bytes else None,
-            'error': 'see AgentTrace for details' if state.status == 'failed' else None,
-        }
+        defaults=defaults
     )
 
 
