@@ -30,12 +30,17 @@ _collection = None
 _episodic_collection = None
 
 
+# anonymized_telemetry=False：chromadb 遥测依赖的 posthog 版本不兼容，
+# 每次操作打印 "Failed to send telemetry event ... capture()" 噪音污染 cron 日志
+_CHROMA_SETTINGS = chromadb.config.Settings(anonymized_telemetry=False)
+
+
 def _get_collection():
     """获取 ChromaDB collection 单例。/ Get ChromaDB collection singleton."""
     global _client, _collection
     if _collection is None:
         if _client is None:
-            _client = chromadb.PersistentClient(path=str(_CHROMA_PATH))
+            _client = chromadb.PersistentClient(path=str(_CHROMA_PATH), settings=_CHROMA_SETTINGS)
         _collection = _client.get_or_create_collection(name=_COLLECTION_NAME)
     return _collection
 
@@ -45,7 +50,7 @@ def _get_episodic_collection():
     global _client, _episodic_collection
     if _episodic_collection is None:
         if _client is None:
-            _client = chromadb.PersistentClient(path=str(_CHROMA_PATH))
+            _client = chromadb.PersistentClient(path=str(_CHROMA_PATH), settings=_CHROMA_SETTINGS)
         _episodic_collection = _client.get_or_create_collection(name=_EPISODIC_COLLECTION_NAME)
     return _episodic_collection
 
