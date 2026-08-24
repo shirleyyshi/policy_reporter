@@ -2,7 +2,7 @@
 
 > 用途：面试前复习 + 现场 demo 脚本 + 简历素材库。
 > 工程事实以 `../HANDOVER.md` 为准；架构总览（零基础版）见 `../ARCHITECTURE.md`，运行手册见 `../RUNBOOK.md`，中英文项目/简历介绍见 `../PROJECT_INTRO.md`；内网改造五问见 `INTERVIEW_PREP.md`。
-> 数字口径：166 条政策（2026-08-21 采集）、8 站点、约 210 个测试、CI 覆盖率门槛 80%（最近一次 82%）、消融数据为历史 eval 运行结果。
+> 数字口径：178 条政策（2026-08-24 库内实数：中央 105 + 地方 73；每日 8 点 cron 自动采集会缓慢增长，**面试前一天查一次最新值**：`docker compose exec backend python manage.py shell -c "from report.models import *; print(CentralPolicy.objects.count(), LocalPolicy.objects.count())"`）、8 站点、约 210 个测试、CI 覆盖率门槛 80%（最近一次 82%）、消融数据为历史 eval 运行结果。
 
 ---
 

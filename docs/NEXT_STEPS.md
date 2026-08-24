@@ -21,10 +21,15 @@
 
 - [x] B1. 注册 cron 每日 8:00 采集——已完成（2026-08-24）：`crontab -e` 注册 `0 8 * * *`，`crontab -l` 确认
 - [x] B2. 确认 cron 脚本含 build_index——已验证：脚本内采集后自动重建索引（本次输出"中央 103 + 地方 73 = 176 条"）
-- [ ] B3. 次日验证：8 点后 `tail -30 /var/log/crawl.log` 应见三段日志 + 各站点统计，无 telemetry 噪音（已修复，提交 5d747bc）
+- [ ] B3. 次日验证：cron 于 08-24 下午注册（`0 8 * * *` 每天 8:00），**首次自动执行为 08-25 早上 8 点**。当天 8:30 后 `tail -30 /var/log/crawl.log` 应见三段日志 + 各站点统计，无 telemetry 噪音（已修复，提交 5d747bc）
 - [x] B4. 服务器同步最新提交——已完成（2026-08-24）：git pull（含 crawl.sh 权限位冲突处理：checkout + `git config core.filemode false`）→ backend 重建 → media 验证
 - [x] B5. frontend 强制重建加载新 nginx.conf（`--force-recreate`，单文件挂载 inode 陷阱，见 HANDOVER §8）→ media 404 / static 200 / 首页 200 三项验证
-- [ ] B6. 同步 D1/D2/D3/E3/E4a（一次操作）：`git pull` → `docker compose up -d --build backend frontend`（迁移 0003 自动执行 + 前端新页面/拦截器打镜像 + backend 挂 healthcheck）→ 验证：① `docker compose ps` 应见 policy_backend `(healthy)` ② `curl http://localhost/api/health/` 应 `{"status":"ok","db":true}` ③ 演示账号重跑 Agent（旧 run 无归属不显示）④ 政策列表标题可点击进详情 ⑤ 注册第二账号互不可见对方 run
+- [x] B6. 同步 D1/D2/D3/E3/E4a——服务器部分已完成（08-24：`up -d --build` 拉齐全部提交至 3602a2f，backend `(healthy)`，`/api/health/` 返回 ok；中途踩 healthcheck×ALLOWED_HOSTS 400 坑，见 HANDOVER §8）。剩余浏览器验证见 B7
+- [ ] B7. 浏览器验证（D1/D2 功能落地 + 顺手看 D3）：
+  - [ ] ① 政策详情页（D2）：登录 → 主页选有数据的日期 → 进"中央政策"编辑页 → **点击任一政策标题**（应为可点击链接）→ 详情页应显示：全文、分类标签、发文日期、"采集于 xx"/"手动录入"标识、"查看原文 ↗" → 点"查看原文"应新标签打开政府原页且标题一致
+  - [ ] ② 重跑 Agent（D1）：进"Agent 自主生成"页 → 选有政策的日期 → 启动 → 进度条逐步推进（可能弹人在回路问题，回答后继续）→ 完成后下载 docx → 进"历史运行"应看到这条新记录（**改造前的旧记录不显示是预期行为**，它们 user 字段为空）
+  - [ ] ③ 用户隔离（D1，可选但建议做）：服务器 `docker compose exec backend python manage.py createsuperuser` 建第二个账号 → 登录新账号 → "历史运行"应为空；再从浏览器地址栏复制第一个账号某条 run 的 trace URL 用新账号打开 → 应显示不存在（404 页面），证明隔离生效
+  - [ ] ④ token 续期（D3）：无需专门验证——登录后放置超过 2 小时再操作，不掉线即说明自动续期在工作；平时使用中自然观察即可
 
 ### 脚本验证结论（2026-08-24，供面试参考）
 
