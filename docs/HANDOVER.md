@@ -2,7 +2,7 @@
 
 > 最后按代码复核：2026-08-22
 > 定位：用于展示的个人学习项目，而非生产系统。它从政府公开站点采集财税相关政策，入库后由 ReAct Agent 编排工具生成 Word 日报。
-> 配套：面试演示脚本与话术见 `INTERVIEW_PLAYBOOK.md`；内网部署改造问答见 `INTERVIEW_PREP.md`。
+> 配套：架构总览见 `ARCHITECTURE.md`，运行手册见 `RUNBOOK.md`，项目介绍见 `PROJECT_INTRO.md`；面试演示脚本与话术见 `interview/INTERVIEW_PLAYBOOK.md`，内网部署改造问答见 `interview/INTERVIEW_PREP.md`。
 
 ## 1. 先读这一页
 
@@ -121,7 +121,7 @@ for name, model in [('central', CentralPolicy), ('local', LocalPolicy)]:
 docker compose exec backend pytest --tb=short -q
 ```
 
-人工验收至少覆盖：登录、按日期查看政策、手动导出 docx、启动一次 Agent、查看 trace、下载 Agent docx。完整的面试演示流程（含人在回路、重启韧性等场景）见 `INTERVIEW_PLAYBOOK.md` 第 3 节。运行评估会调用 DeepSeek 并产生费用，且结果受模型与数据集变化影响；不要把一次消融结果包装成统计显著性结论。
+人工验收至少覆盖：登录、按日期查看政策、手动导出 docx、启动一次 Agent、查看 trace、下载 Agent docx。完整的面试演示流程（含人在回路、重启韧性等场景）见 `interview/INTERVIEW_PLAYBOOK.md` 第 3 节。运行评估会调用 DeepSeek 并产生费用，且结果受模型与数据集变化影响；不要把一次消融结果包装成统计显著性结论。
 
 ## 6. 当前风险与改进优先级
 
@@ -181,9 +181,23 @@ docker compose exec backend pytest --tb=short -q
 - 改 `frontend/nginx.conf`：必须 `docker compose up -d --force-recreate frontend`。nginx.conf 是单文件 bind mount，git pull 替换文件 inode 后老容器仍挂旧文件，`restart` 之外必须重建容器才加载新配置（2026-08-24 media 404 不生效的根因）。
 - 提交前：运行测试、检查 `.env` 和数据库备份未被提交，并同步推送既定的 Gitee 与 GitHub 远端。
 
-## 9. 文档地图与清理建议
+## 9. 文档地图
 
-当前根目录只保留五份有明确用途的文档：`README.md` 负责项目说明，`HANDOVER.md` 负责交接，`NEXT_STEPS.md` 负责后续待办的勾选跟踪，`INTERVIEW_PLAYBOOK.md` 负责演示与简历素材，`INTERVIEW_PREP.md` 负责央企内网改造问答。此前的历史审计、阶段总结和 TODO 文档内容已吸收到本文及面试材料中，不再单独保留，避免过时结论和悬空引用。
+文档统一归档在 `docs/`，根目录只保留 `README.md`（项目说明，GitHub 门面）：
+
+```
+docs/
+├── HANDOVER.md       # 交接文档（本文）：架构事实、运维、边界、验证清单
+├── ARCHITECTURE.md   # 架构说明书：零基础可读的系统架构（前端/后端/数据库/Agent）
+├── RUNBOOK.md        # 运行说明书：从零部署、日常运维、故障排查
+├── PROJECT_INTRO.md  # 项目介绍：中英文概括 + 简历用中英文描述
+├── NEXT_STEPS.md     # 后续待办勾选跟踪
+└── interview/        # 面试材料
+    ├── INTERVIEW_PLAYBOOK.md   # 演示脚本、手动测试清单、话术
+    └── INTERVIEW_PREP.md       # 央企内网改造五问等深水区问答
+```
+
+此前的历史审计、阶段总结和 TODO 文档内容已吸收到上述文档中，不再单独保留，避免过时结论和悬空引用。
 
 其他清理项：
 

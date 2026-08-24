@@ -165,7 +165,16 @@ pytest --cov=apps --cov-report=term-missing
 │   └── pytest.ini          # pytest 配置
 ├── frontend/               # Vue 3 前端
 │   └── src/views/          # 登录/首页/编辑页/Agent 运行页
+├── docs/                   # 文档（架构说明/运行手册/交接/面试材料）
 ├── .github/workflows/      # GitHub Actions CI
 ├── docker-compose.yml      # 三容器编排（db + backend + frontend）
 └── scripts/                # 爬虫定时脚本
 ```
+
+## 文档导航
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — 系统架构说明书（零基础可读）
+- [docs/RUNBOOK.md](docs/RUNBOOK.md) — 运行说明书（部署/运维/故障排查）
+- [docs/PROJECT_INTRO.md](docs/PROJECT_INTRO.md) — 项目中英文介绍
+- [docs/HANDOVER.md](docs/HANDOVER.md) — 交接文档
+- [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) — 后续工作清单
