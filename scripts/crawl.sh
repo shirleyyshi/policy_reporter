@@ -4,6 +4,8 @@
 #   1. chmod +x scripts/crawl.sh
 #   2. crontab -e 加一行：0 8 * * * /opt/policy_reporter/scripts/crawl.sh >> /var/log/crawl.log 2>&1
 # Docker 部署自动走 docker compose exec，本地裸机开发自动走宿主机 python
+# python -u：禁用输出缓冲。exec -T 下 stdout 是管道，默认块缓冲会导致全程无输出、
+# 结束时一次性刷出，看起来像卡死（cron 日志也无法实时观察）
 
 set -e
 
@@ -11,10 +13,10 @@ PROJECT_DIR="/opt/policy_reporter"
 cd "$PROJECT_DIR"
 
 if [ -f docker-compose.yml ] && docker compose ps --status running 2>/dev/null | grep -q backend; then
-    RUN="docker compose exec -T backend python"
+    RUN="docker compose exec -T backend python -u"
 else
     cd "$PROJECT_DIR/backend"
-    RUN="${PYTHON_BIN:-python}"
+    RUN="${PYTHON_BIN:-python} -u"
 fi
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 开始爬取（执行方式: $RUN）..."
