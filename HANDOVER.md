@@ -178,6 +178,7 @@ docker compose exec backend pytest --tb=short -q
 - 改 backend 代码或配置：执行 `docker compose up -d --build backend`。
 - 改 `docker-compose.yml`（端口/卷/环境变量）：执行 `docker compose up -d` 重建全部受影响容器（2026-08-23 端口改绑 127.0.0.1 后，服务器同步本次改动时需执行此命令）。
 - 改前端：执行 `docker compose up -d --build frontend`，并确认 Agent 下载路径在未配置 `VITE_API_BASE` 时不会拼出 `undefined/api/...`。
+- 改 `frontend/nginx.conf`：必须 `docker compose up -d --force-recreate frontend`。nginx.conf 是单文件 bind mount，git pull 替换文件 inode 后老容器仍挂旧文件，`restart` 之外必须重建容器才加载新配置（2026-08-24 media 404 不生效的根因）。
 - 提交前：运行测试、检查 `.env` 和数据库备份未被提交，并同步推送既定的 Gitee 与 GitHub 远端。
 
 ## 9. 文档地图与清理建议
