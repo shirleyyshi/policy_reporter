@@ -19,10 +19,11 @@
 
 ## B. 一次性运维
 
-- [~] B1. 注册 cron 每日 8:00 采集——进行中（2026-08-24）：脚本已手动跑通（14 页/176 条，新增 3 条，索引重建正常）；`crontab -e` 加 `0 8 * * * /opt/policy_reporter/scripts/crawl.sh >> /var/log/crawl.log 2>&1` 后 `crontab -l` 确认
+- [x] B1. 注册 cron 每日 8:00 采集——已完成（2026-08-24）：`crontab -e` 注册 `0 8 * * *`，`crontab -l` 确认
 - [x] B2. 确认 cron 脚本含 build_index——已验证：脚本内采集后自动重建索引（本次输出"中央 103 + 地方 73 = 176 条"）
 - [ ] B3. 次日验证：8 点后 `tail -30 /var/log/crawl.log` 应见三段日志 + 各站点统计，无 telemetry 噪音（已修复，提交 5d747bc）
-- [ ] B4. 服务器同步最新两个提交（fb78f8b media 404 + 5d747bc 遥测关闭）：`git pull` → `docker compose up -d --build backend` → curl 验证 `/media/` 为 404
+- [x] B4. 服务器同步最新提交——已完成（2026-08-24）：git pull（含 crawl.sh 权限位冲突处理：checkout + `git config core.filemode false`）→ backend 重建 → media 验证
+- [x] B5. frontend 强制重建加载新 nginx.conf（`--force-recreate`，单文件挂载 inode 陷阱，见 HANDOVER §8）→ media 404 / static 200 / 首页 200 三项验证
 
 ### 脚本验证结论（2026-08-24，供面试参考）
 
@@ -79,5 +80,6 @@ A → B → G → D1 + D2 → 其余按余量取舍。C/E 做不完的价值在�
 - 服务器同步 2026-08-23 修复：端口收窄已验证（A1-A3、A5），镜像重建后 194 passed（A4）
 - C2 静态文件服务：nginx 挂共享卷直接服务 /static/（A6-A7 已验证 200）
 - /media/ 显式 404（提交 fb78f8b）、ChromaDB 遥测噪音关闭（提交 5d747bc）
-- crawl.sh 双修复：Docker 自动识别（2c54d27）+ python -u 禁用输出缓冲（1db604d），手动全量跑通
+- crawl.sh 双修复：Docker 自动识别（2c54d27）+ python -u 禁用输出缓冲（1db604d），手动全量跑通；仓库内标记可执行位（bf23bfb）
+- cron 注册完成；nginx.conf 单文件挂载 inode 陷阱记入 HANDOVER §8（0597c15）
 - C1/C3 安全项降级为不做，面试口径固定
