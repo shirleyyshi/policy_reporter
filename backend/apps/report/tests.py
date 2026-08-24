@@ -149,6 +149,80 @@ class GetPoliciesViewTest(TestCase):
         self.assertEqual(len(resp.data['central']), 0)
         self.assertEqual(len(resp.data['local']), 0)
 
+    def test_list_includes_crawled_at(self):
+        """列表应包含 crawled_at（D2 详情页/列表展示采集时间）。"""
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.get('/api/policies/')
+        self.assertIn('crawled_at', resp.data['central'][0])
+        self.assertIn('crawled_at', resp.data['local'][0])
+
+
+class PolicyDetailViewTest(TestCase):
+    """测试 policy_detail 视图（D2 政策详情页）。"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass123')
+        self.client = APIClient()
+        self.central = CentralPolicy.objects.create(
+            title="中央政策X", content="中央正文全文", type="财政",
+            publish_time=make_dt(2026, 7, 13),
+            source_url="http://central.example.com/x",
+            crawled_at=make_dt(2026, 8, 1, 8, 0),
+        )
+        self.local = LocalPolicy.objects.create(
+            title="地方政策Y", content="地方正文全文", province="广东", type="税务",
+            publish_time=make_dt(2026, 7, 13),
+            source_url="http://local.example.com/y",
+        )
+
+    def test_requires_authentication(self):
+        """未登录应返回 401。"""
+        resp = self.client.get('/api/policies/detail/', {'source': 'central', 'id': self.central.id})
+        self.assertEqual(resp.status_code, 401)
+
+    def test_central_detail_fields(self):
+        """中央政策详情应含全文/类型/采集时间/来源。"""
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.get('/api/policies/detail/', {'source': 'central', 'id': self.central.id})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['title'], "中央政策X")
+        self.assertEqual(resp.data['content'], "中央正文全文")
+        self.assertEqual(resp.data['type'], "财政")
+        self.assertEqual(resp.data['source'], 'central')
+        self.assertIsNotNone(resp.data['crawled_at'])
+
+    def test_local_detail_fields(self):
+        """地方政策详情应含 province 与 type。"""
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.get('/api/policies/detail/', {'source': 'local', 'id': self.local.id})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data['province'], "广东")
+        self.assertEqual(resp.data['type'], "税务")
+
+    def test_not_found(self):
+        """不存在的 id 返回 404。"""
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.get('/api/policies/detail/', {'source': 'central', 'id': 99999})
+        self.assertEqual(resp.status_code, 404)
+
+    def test_invalid_id_string(self):
+        """非数字 id 返回 404 而非 500。"""
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.get('/api/policies/detail/', {'source': 'central', 'id': 'abc'})
+        self.assertEqual(resp.status_code, 404)
+
+    def test_invalid_source_400(self):
+        """source 非 central/local 返回 400。"""
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.get('/api/policies/detail/', {'source': 'other', 'id': 1})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_missing_id_400(self):
+        """缺 id 返回 400。"""
+        self.client.force_authenticate(user=self.user)
+        resp = self.client.get('/api/policies/detail/', {'source': 'central'})
+        self.assertEqual(resp.status_code, 400)
+
 
 class GetPolicyCountsViewTest(TestCase):
     """测试 get_policy_counts 视图。"""

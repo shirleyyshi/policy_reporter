@@ -63,7 +63,7 @@
           :class="{ checked: selectedIds.includes(item.id) }"
         >
           <el-checkbox :value="item.id">
-            <span class="policy-title">{{ item.title }}</span>
+            <span class="policy-title link" @click.prevent="goDetail(item.id)">{{ item.title }}</span>
           </el-checkbox>
           <span class="publish-time">{{ formatDate(item.publish_time) }}</span>
         </label>
@@ -119,6 +119,10 @@ function goBack(save) {
     ElMessage.success('已保存中央政策选择')
   }
   router.push('/home')
+}
+
+function goDetail(id) {
+  router.push(`/policy/central/${id}`)
 }
 
 onMounted(async () => {
@@ -245,6 +249,8 @@ onMounted(async () => {
 .policy-item:hover { background: rgba(0,229,255,0.05); }
 .policy-item.checked { background: rgba(0,229,255,0.08); }
 .policy-title { color: #e0f7fa; font-size: 14px; flex: 1; }
+.policy-title.link { cursor: pointer; transition: color 0.2s; }
+.policy-title.link:hover { color: #00e5ff; }
 .publish-time {
   font-size: 12px;
   color: #80deea;

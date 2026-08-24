@@ -7,6 +7,7 @@ const routes = [
     { path: '/home', name: 'Home', component: () => import('@/views/Home.vue') },
     { path: '/editor/central', name: 'CentralEditor', component: () => import('@/views/CentralEditor.vue') },
     { path: '/editor/local', name: 'LocalEditor', component: () => import('@/views/LocalEditor.vue') },
+    { path: '/policy/:source/:id', name: 'PolicyDetail', component: () => import('@/views/PolicyDetail.vue') },
     { path: '/editor/legal', name: 'LegalEditor', component: () => import('@/views/LegalEditor.vue') },
     { path: '/agent', name: 'AgentRun', component: () => import('@/views/AgentRun.vue') },
     { path: '/agent/runs', name: 'AgentRuns', component: () => import('@/views/AgentRuns.vue') },

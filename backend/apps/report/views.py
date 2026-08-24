@@ -236,13 +236,40 @@ def get_policies(request):
             local_qs = local_qs.filter(publish_time__date=date_str)
         except (ValueError, TypeError):
             pass
-    central = list(central_qs.values('id', 'title', 'type', 'publish_time', 'source_url'))
-    local = list(local_qs.values('id', 'title', 'province', 'publish_time', 'source_url'))
+    central = list(central_qs.values('id', 'title', 'type', 'publish_time', 'source_url', 'crawled_at'))
+    local = list(local_qs.values('id', 'title', 'province', 'type', 'publish_time', 'source_url', 'crawled_at'))
     for item in central:
         item['source'] = "central"
     for item in local:
         item['source'] = "local"
     return Response({'central': central, 'local': local})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def policy_detail(request):
+    """单条政策详情（含 content 全文，供详情页展示）。
+
+    source: central/local；id: 对应表主键。
+    """
+    source = request.query_params.get('source')
+    policy_id = request.query_params.get('id')
+    if source not in ('central', 'local'):
+        return Response({'error': 'source 必须为 central 或 local'}, status=400)
+    if not policy_id:
+        return Response({'error': 'id 为必填项'}, status=400)
+    try:
+        qs = CentralPolicy if source == 'central' else LocalPolicy
+        fields = ['id', 'title', 'content', 'type', 'publish_time', 'source_url', 'crawled_at']
+        if source == 'local':
+            fields.insert(3, 'province')
+        policy = qs.objects.filter(id=policy_id).values(*fields).first()
+    except ValueError:
+        return Response({'error': '政策不存在'}, status=404)
+    if policy is None:
+        return Response({'error': '政策不存在'}, status=404)
+    policy['source'] = source
+    return Response(policy)
 
 
 
