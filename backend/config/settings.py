@@ -36,6 +36,9 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env.bool('DEBUG', default=False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+# 固定放行回环地址：backend healthcheck 绕过 Nginx 直连 127.0.0.1:8000，
+# Host 头不在业务域名列表内，否则 DEBUG=False 下 Django 返回 400 导致容器被判 unhealthy
+ALLOWED_HOSTS += ['127.0.0.1', 'localhost', '[::1]']
 
 
 # Application definition

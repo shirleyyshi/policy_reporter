@@ -8,9 +8,23 @@ admin IP 白名单中间件测试。
 - 非 /admin/ 路径不受影响
 """
 from django.http import HttpResponse
-from django.test import RequestFactory, SimpleTestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.conf import settings
 
 from config.middleware import admin_ip_whitelist, _client_ip
+
+
+class AllowedHostsProbeTest(TestCase):
+    """healthcheck 探活的 Host 头放行（2026-08-24 生产 400 故障回归）。"""
+
+    def test_loopback_in_allowed_hosts(self):
+        """settings 固定追加回环地址，不依赖 .env 配置。"""
+        self.assertIn('127.0.0.1', settings.ALLOWED_HOSTS)
+
+    def test_health_with_loopback_host(self):
+        """Host: 127.0.0.1 直连探活返回 200（原故障：DisallowedHost → 400 → 容器 unhealthy）。"""
+        resp = self.client.get('/api/health/', HTTP_HOST='127.0.0.1')
+        self.assertEqual(resp.status_code, 200)
 
 
 class ClientIpTest(SimpleTestCase):
