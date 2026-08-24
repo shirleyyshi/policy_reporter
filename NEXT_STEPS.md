@@ -3,24 +3,30 @@
 > 生成于 2026-08-24。本文是执行顺序视图，勾选跟踪进度；细节与原理见 `HANDOVER.md`，演示话术见 `INTERVIEW_PLAYBOOK.md`。
 > 服务器命令均在 `/opt/policy_reporter` 的 Web 面板/终端执行。
 
-## A. 立即执行：同步 2026-08-23 修复到服务器（唯一有顺序依赖的事）
+## A. 立即执行：同步 2026-08-23 修复到服务器（已完成，2026-08-24）
 
-- [ ] A1. `git pull origin main`，然后 `docker compose up -d`（端口映射变更必须重建全部容器，仅 `--build backend` 不够）
-- [ ] A2. `.env` 中填写 `ADMIN_ALLOWED_IPS=<常用出口IP>`（逗号分隔；留空=不限制），改完再执行一次 `docker compose up -d`
-- [ ] A3. 验证端口已收窄：`docker compose ps` 正常 + `ss -tlnp | grep -E '3306|8000'` 只显示 127.0.0.1 绑定
-- [ ] A4. 容器内回归：`docker compose exec backend pytest --tb=short -q`，应 194 passed
-- [ ] A5. 浏览器走 Nginx 入口确认登录/首页正常（你只用网页访问的话对端口改绑无感）
+- [x] A1. `git pull origin main`，然后 `docker compose up -d`（端口映射变更必须重建全部容器，仅 `--build backend` 不够）
+- [x] A2. `.env` 留空 `ADMIN_ALLOWED_IPS`（=不启用白名单，admin 另有登录密码兜底）
+- [x] A3. 验证端口已收窄：`docker compose ps` 正常 + `ss -tlnp | grep -E '3306|8000'` 只显示 127.0.0.1 绑定（已确认）
+- [ ] A4. 容器内回归：先 `docker compose up -d --build backend` **重建镜像**（`up -d` 不会重建，容器内仍是 8 天前旧代码，跑出 185 个测试含 4 个已知陈旧失败），再 `docker compose exec backend pytest --tb=short -q` 应 194 passed
+- [x] A5. 浏览器走 Nginx 入口确认登录/首页正常
+
+## A2. 同步 2026-08-24 静态文件修复（C2 产物）
+
+- [ ] A6. `git pull` 后 `docker compose up -d`（frontend 新增共享卷挂载，会重建 frontend 容器）
+- [ ] A7. 验证 admin 静态样式：浏览器开 `http://<服务器IP>/admin/`，页面应有完整 CSS（不再是纯文本布局）
+- [ ] A8. 顺手验证 `http://<服务器IP>/media/` 应 404（已移除暴露，docx 走鉴权 API 下载）
 
 ## B. 一次性运维
 
 - [ ] B1. 注册 cron 每日 8:00 采集：`scripts/crawl.sh` 已就绪，按脚本头部注释注册（HANDOVER §5）
 - [ ] B2. 注册时确认 cron 脚本里含采集后 `build_index` 重建索引（否则 RAG 检索旧索引）
 
-## C. P0 剩余安全项（量力而行，做不完降级为面试话术）
+## C. P0 剩余安全项（2026-08-24 结项）
 
-- [ ] C1. HTTPS + HTTP 安全响应头——前置条件：域名；做不完就按"内网部署时按等保要求实施"口径讲
-- [ ] C2. `/static/`、`/media/` 静态文件服务——当前 Nginx 转发给 gunicorn 但 Django 无对应路由；改为 Nginx 直接挂载共享卷（可交给 AI 改）
-- [ ] C3. 登录/API 限流、备份恢复演练、密钥轮换
+- [x] C1. HTTPS + HTTP 安全响应头——**降级为不做**（前置条件是域名；面试口径："HTTP/IP 部署，内网落地时按等保要求补 HTTPS 与安全响应头"）
+- [x] C2. `/static/`、`/media/` 静态文件服务——已完成（2026-08-24）：`backend_static` 共享卷挂入 frontend，nginx `alias` 直接服务 admin 静态；`/media/` 反代移除（docx 走鉴权 API，暴露 media 反而绕过登录）。同步见 A6-A8
+- [x] C3. 登录/API 限流、备份恢复演练、密钥轮换——**随 C1 降级为不做**，面试同口径
 
 ## D. P1 演示价值提升（按面试 ROI 排序，均可交给 AI 实现）
 
@@ -59,3 +65,9 @@ A → B → G → D1 + D2 → 其余按余量取舍。C/E 做不完的价值在�
 - 端口 3306/8000 改绑 127.0.0.1、ADMIN_ALLOWED_IPS 传入容器、中间件防 XFF 伪造（提交 4582821）
 - Critic 解析失败记 warning、publish_time 反序列化恢复 datetime（提交 4582821）
 - 历史文档清理与死代码删除（提交 6a749f4），均已推送 Gitee + GitHub
+
+## 已完成存档（2026-08-24）
+
+- 服务器同步 2026-08-23 修复：端口收窄已验证（A1-A3、A5）
+- C2 静态文件服务：nginx 挂共享卷直接服务 /static/，移除 /media/ 暴露
+- C1/C3 安全项降级为不做，面试口径固定

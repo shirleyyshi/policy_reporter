@@ -134,11 +134,11 @@ docker compose exec backend pytest --tb=short -q
 3. Critic 输出解析失败原静默返回"无需重规划"；现记 warning 日志（含错误与原文前 200 字），返回语义不变，不污染消融指标口径。
 4. `_deserialize_state` 原不把 ISO 字符串还原为 datetime，重启恢复后 `raw_policies[].publish_time` 变成字符串；现恢复为 datetime，与内存 state 类型一致（`clean_policies` 的 publish_time 本就是 str，属设计内，不处理）。
 5. 顺带修复两个陈旧测试（`test_views.py` 引用已迁移到 `agent/utils.py` 的 `has_docx_trace` 旧名；`test_core.py` 期望的 LocalPolicy 默认 type 已从"综合"改为空串），修复前 CI 全量跑是红的。
+6. `/static/` 静态文件服务已改为 Nginx 直接挂载共享卷（2026-08-24）：`backend_static` 卷同时挂入 backend（collectstatic 输出）与 frontend（只读），nginx `location /static/` 用 `alias` 直接服务并加 7 天缓存。原配置把 `/static/` 反代给 gunicorn，但 `DEBUG=False` 下 Django 不服务静态文件，admin 页面无样式。`/media/` 反代配置已移除——docx 下载本就走鉴权 API（`/api/agent/runs/<id>/download/`），直接暴露 media 目录反而绕过登录。**部署注意**：frontend 服务新增卷挂载，需 `docker compose up -d` 重建 frontend 容器。
 
-仍待办：
+仍待办（2026-08-24 决定：降级为不做，面试按"内网部署时按等保要求实施"口径讲）：
 
-6. 补 HTTPS、HTTP 安全响应头、登录/API 限流、备份恢复演练和密钥轮换。现有 fail2ban 只保护 SSH，不能替代应用安全控制。
-7. Nginx 把 `/static/`、`/media/` 转发给 gunicorn，但 Django URL 配置没有对应的生产静态/媒体服务。应验证并改成 Nginx 直接挂载共享卷，或引入专用静态文件方案。
+7. HTTPS、HTTP 安全响应头、登录/API 限流、备份恢复演练和密钥轮换。前置条件是域名；现有 fail2ban 只保护 SSH，不能替代应用安全控制。
 
 ### P1：提升演示与多用户价值
 

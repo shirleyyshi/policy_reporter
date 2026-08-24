@@ -68,9 +68,10 @@ services:
       - backend
     ports:
       - "80:80"
-    # 如果要用 HTTPS，加证书卷和 443 端口
     volumes:
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # 与 backend 共享 collectstatic 产物，nginx 直接服务 /static/（不再反代 gunicorn）
+      - backend_static:/app/staticfiles:ro
 
 volumes:
   db_data:
