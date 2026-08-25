@@ -88,6 +88,8 @@ const selectedIds = computed({
 })
 const filterType = ref('')
 const selectedDate = ref(localStorage.getItem('selectedDate') || new Date().toISOString().split('T')[0])
+// 进入页面时的选择快照：勾选实时写入 store，"不保存返回"时用它回滚
+let snapshotIds = null
 
 const centralGrouped = computed(() => {
   const groups = {}
@@ -117,6 +119,9 @@ function goBack(save) {
   if (save) {
     // 已通过 computed setter 实时写入 store，这里只提示
     ElMessage.success('已保存中央政策选择')
+  } else {
+    // 回滚到进入页面时的选择
+    if (snapshotIds) selectionStore.centralIds = [...snapshotIds]
   }
   router.push('/home')
 }
@@ -126,6 +131,8 @@ function goDetail(id) {
 }
 
 onMounted(async () => {
+  // 快照要在任何修改前取（下面的过滤也会改 store）
+  snapshotIds = [...selectionStore.centralIds]
   try {
     const res = await api.get('/api/policies/', { params: { date: selectedDate.value } })
     policies.value = res.data.central || []

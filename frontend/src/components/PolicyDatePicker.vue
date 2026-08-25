@@ -208,7 +208,7 @@ onUnmounted(() => {
   font-family: inherit;
 }
 
-/* 触发按钮：尺寸/配色对齐原 el-date-picker（32px 高、主题色） */
+/* 触发按钮：白色底、黑字，对齐 Element Plus 原生输入框 */
 .pdp-trigger {
   display: flex;
   align-items: center;
@@ -216,33 +216,34 @@ onUnmounted(() => {
   width: 170px;
   padding: 0 12px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: #ffffff;
+  border: 1px solid #dcdfe6;
   border-radius: 6px;
-  color: #e0f7fa;
+  color: #303133;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
   box-sizing: border-box;
 }
 .pdp-trigger:hover {
-  border-color: rgba(0, 229, 255, 0.6);
+  border-color: #00e5ff;
 }
 .pdp-trigger.open {
   border-color: #00e5ff;
   box-shadow: 0 0 0 1px #00e5ff inset;
 }
 .pdp-icon {
-  color: #80deea;
+  color: #909399;
   flex-shrink: 0;
 }
 .pdp-value {
   flex: 1;
   text-align: left;
   letter-spacing: 0.5px;
+  color: #303133;
 }
 .pdp-caret {
-  color: #80deea;
+  color: #909399;
   font-size: 10px;
   transition: transform 0.2s;
 }
@@ -250,17 +251,16 @@ onUnmounted(() => {
   transform: rotate(180deg);
 }
 
-/* 弹层面板（Teleport 到 body，fixed 定位，z-index 高于 Element Plus 弹层） */
+/* 弹层面板：白色底（Teleport 到 body，fixed 定位，z-index 高于 Element Plus 弹层） */
 .pdp-panel {
   z-index: 3000;
   padding: 14px;
-  background: rgba(13, 27, 36, 0.98);
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  background: #ffffff;
+  border: 1px solid #e4e7ed;
   border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 229, 255, 0.08);
-  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
   box-sizing: border-box;
-  color: #e0f7fa;
+  color: #303133;
   font-family: 'Inter', 'Microsoft YaHei', 'PingFang SC', -apple-system, sans-serif;
 }
 
@@ -273,23 +273,23 @@ onUnmounted(() => {
 .pdp-month {
   font-size: 14px;
   font-weight: 600;
-  color: #00e5ff;
+  color: #303133;
   letter-spacing: 1px;
 }
 .pdp-nav {
   width: 26px;
   height: 26px;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  border: 1px solid #dcdfe6;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #80deea;
+  background: #ffffff;
+  color: #909399;
   font-size: 16px;
   cursor: pointer;
   transition: all 0.2s;
 }
 .pdp-nav:hover:not(:disabled) {
-  color: #00e5ff;
-  border-color: rgba(0, 229, 255, 0.6);
+  color: #00b8d4;
+  border-color: #00e5ff;
 }
 .pdp-nav:disabled {
   opacity: 0.3;
@@ -304,7 +304,7 @@ onUnmounted(() => {
 .pdp-weekdays span {
   text-align: center;
   font-size: 12px;
-  color: #607d8b;
+  color: #909399;
   padding: 4px 0;
 }
 
@@ -319,7 +319,7 @@ onUnmounted(() => {
   background: transparent;
   border-radius: 6px;
   font-size: 13px;
-  color: #e0f7fa;
+  color: #303133;
   cursor: pointer;
   position: relative;
   transition: background 0.15s;
@@ -330,18 +330,20 @@ onUnmounted(() => {
   cursor: default;
 }
 
-/* 核心着色：仅给有政策的日期上主题青色，其余保持默认样式 */
+/* 核心着色：有政策 = 主题青色块；无政策 = 黑色默认字 */
 .pdp-cell.has-policy {
-  color: #00e5ff;
+  color: #00b8d4;
   font-weight: 700;
+  background: rgba(0, 229, 255, 0.12);
 }
 .pdp-cell.future {
-  color: #455a64 !important;
+  color: #c0c4cc !important;
+  background: transparent !important;
   cursor: not-allowed;
 }
 
 .pdp-cell:not(.blank):not(.future):hover {
-  background: rgba(0, 229, 255, 0.12);
+  background: rgba(0, 229, 255, 0.18);
 }
 .pdp-cell.today::after {
   content: '';
@@ -352,16 +354,16 @@ onUnmounted(() => {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #00e5ff;
+  background: #00b8d4;
 }
 .pdp-cell.selected {
   background: linear-gradient(135deg, #00e5ff, #2979ff);
-  color: #0f2027 !important;
+  color: #ffffff !important;
   font-weight: 700;
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 229, 255, 0.4);
 }
 .pdp-cell.selected.today::after {
-  background: #0f2027;
+  background: #ffffff;
 }
 
 /* 图例 */
@@ -371,9 +373,9 @@ onUnmounted(() => {
   gap: 14px;
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(0, 229, 255, 0.12);
+  border-top: 1px solid #ebeef5;
   font-size: 11px;
-  color: #80deea;
+  color: #606266;
 }
 .pdp-legend span {
   display: flex;
@@ -386,11 +388,11 @@ onUnmounted(() => {
   border-radius: 50%;
   display: inline-block;
 }
-.dot.has { background: #00e5ff; box-shadow: 0 0 4px rgba(0, 229, 255, 0.8); }
-.dot.none { background: #e0f7fa; opacity: 0.7; }
+.dot.has { background: #00b8d4; }
+.dot.none { background: #303133; opacity: 0.65; }
 .legend-note {
   margin-left: auto;
-  color: #607d8b;
+  color: #909399;
 }
 
 /* 弹出动画 */

@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { selectionStore } from '@/stores/selection'
@@ -57,6 +57,12 @@ const legalInput = computed({
   set: (val) => { selectionStore.legalText = val }
 })
 
+// 进入页面时的快照："不保存返回"时回滚
+let snapshotText = ''
+onMounted(() => {
+  snapshotText = selectionStore.legalText
+})
+
 function saveAndReturn() {
   selectionStore.legalText = legalInput.value.trim()
   ElMessage.success('已保存合规资讯')
@@ -64,6 +70,7 @@ function saveAndReturn() {
 }
 
 function returnWithoutSave() {
+  selectionStore.legalText = snapshotText
   router.push('/home')
 }
 </script>
