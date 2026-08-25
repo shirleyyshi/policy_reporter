@@ -279,26 +279,30 @@ async function loadHistory(runId) {
   }
 }
 
-function downloadDocx(runId) {
-  const token = localStorage.getItem('access_token')
-  const url = `${import.meta.env.VITE_API_BASE}/api/agent/runs/${runId}/download/`
-  fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-    .then(res => {
-      if (!res.ok) throw new Error('下载失败')
-      return res.blob()
-    })
-    .then(blob => {
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `agent_report_${runId}.docx`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-      ElMessage.success('docx 下载成功')
-    })
-    .catch(err => ElMessage.error(err.message))
+async function downloadDocx(runId) {
+  try {
+    // 走 axios 实例：baseURL 回退逻辑与其它请求一致（VITE_API_BASE 未配置时为相对路径），
+    // 且 401 时拦截器自动 refresh 并重放下载
+    const res = await api.get(`/api/agent/runs/${runId}/download/`, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(res.data)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `agent_report_${runId}.docx`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('docx 下载成功')
+  } catch (err) {
+    // 后端错误体在 blob 模式下是 Blob，需读出 JSON 里的 error
+    let msg = err.message
+    if (err.response?.data instanceof Blob) {
+      try {
+        msg = JSON.parse(await err.response.data.text()).error || msg
+      } catch { /* 保持默认提示 */ }
+    }
+    ElMessage.error('docx 下载失败：' + msg)
+  }
 }
 
 function timelineType(t) {

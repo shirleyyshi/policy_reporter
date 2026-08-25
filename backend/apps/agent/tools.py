@@ -217,7 +217,9 @@ def format_docx(state: AgentState, params: dict) -> dict:
         for it in state.clean_policies if it.get('source') == 'local'
     ]
     out = BytesIO()
-    generate_docx(central, local, state.task_input.get('legal_text', ''), out, summary=state.summary)
+    # report_date 必须传：否则 generate_docx 标题回退为"当天"日期，与所选政策日期不符
+    generate_docx(central, local, state.task_input.get('legal_text', ''), out,
+                  summary=state.summary, report_date=state.task_input.get('date'))
     state.docx_bytes = out.getvalue()
     return {"docx_size": len(state.docx_bytes), "central": len(central), "local": len(local)}
 

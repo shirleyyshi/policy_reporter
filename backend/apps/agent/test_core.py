@@ -20,7 +20,7 @@ from unittest.mock import patch, MagicMock
 from django.test import TestCase
 from django.utils import timezone
 
-from agent.tools import AgentState, fetch_central, fetch_local
+from agent.tools import AgentState, fetch_central, fetch_local, TOOLS
 from agent.core import (
     _run_loop, save_state, get_state, submit_answer,
     _serialize_state, _RUN_CACHE, MAX_STEPS,
@@ -34,6 +34,36 @@ def _make_state(**kwargs):
     for k, v in kwargs.items():
         setattr(state, k, v)
     return state
+
+
+class FormatDocxTest(TestCase):
+    """format_docx 产出的 docx 内容断言（用 python-docx 反解）。"""
+
+    def _run_format_docx(self, date):
+        state = AgentState(task_input={'date': date, 'legal_text': ''})
+        state.summary = '测试摘要内容'
+        state.clean_policies = [{
+            'source': 'central', 'title': '测试政策', 'content': '内容',
+            'type': '财政', 'source_url': 'http://example.com/1',
+        }]
+        result = TOOLS['format_docx'](state, {})
+        self.assertNotIn('error', result)
+        self.assertGreater(result['docx_size'], 1000)
+        from docx import Document
+        from io import BytesIO
+        doc = Document(BytesIO(state.docx_bytes))
+        return doc.paragraphs[0].text
+
+    def test_title_uses_selected_date(self):
+        """主标题应含所选政策日期，而非生成当天日期。"""
+        title = self._run_format_docx('2026-01-15')
+        self.assertIn('2026.01.15', title)
+
+    def test_title_falls_back_to_today_without_date(self):
+        """task_input 无 date 时回退当天日期（不崩溃）。"""
+        title = self._run_format_docx('')
+        from datetime import datetime
+        self.assertIn(datetime.now().strftime('%Y.%m.%d'), title)
 
 
 class TerminatorTest(TestCase):

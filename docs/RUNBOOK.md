@@ -139,6 +139,7 @@ docker compose exec db mysqldump -uroot -p"$DB_ROOT_PASSWORD" policy_db > backup
 | 采集某站点 0 条 | `--dry-run` 单测该站点 | 站点改版需更新 `crawl_config.json` 的 XPath |
 | 采集卡住很久 | 属正常（限速设计）；另开终端 `docker compose top backend` 确认进程 | >30 分钟无站点级输出再排查 |
 | 401 循环跳登录 | 浏览器 localStorage 查 refresh_token | 7 天长期票过期，重新登录即可 |
+| 下载的 docx 只有 1KB 且打不开 | 用文本编辑器打开该文件，若是 HTML 即中招 | 已修复（前端 URL 拼接错误，SPA 兜底把 index.html 当 docx 返回）；历史坏文件删除重下即可 |
 | 迁移报错 | `docker compose exec backend python manage.py migrate` 看输出 | 多为前后版本跳太多，按报错的 migration 号处理 |
 | 容器内存不足 OOM | `docker stats` | 采集+Agent 高峰需 ~1.5G；swap 或升配 |
 
@@ -148,7 +149,7 @@ docker compose exec db mysqldump -uroot -p"$DB_ROOT_PASSWORD" policy_db > backup
 
 ```bash
 # 本地（仓库 backend/ 下，venv 激活）
-pytest                       # 全量 211 个，覆盖率门槛 80%
+pytest                       # 全量 218 个，覆盖率门槛 80%
 
 # 容器内（需镜像含 dev 依赖）
 docker compose exec backend pytest --tb=short -q
