@@ -9,10 +9,12 @@ Agent API 视图（Phase 2 同步）。
 
 Phase 5 改后台线程 + 轮询以支持 ask_human 异步。
 """
+import datetime
 import logging
 from django.http import HttpResponse
 from django.db.models import Max, Min, Count
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status as http_status
 
@@ -53,6 +55,7 @@ def _infer_status(run_id):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def agent_run(request):
     """
     异步启动 Agent（Phase 5：后台线程 + 轮询）。
@@ -64,16 +67,23 @@ def agent_run(request):
 
     if not date:
         return Response(
-            {'error': 'date 为必填项'},
+            {'detail': 'date 为必填项'},
+            status=http_status.HTTP_400_BAD_REQUEST
+        )
+    try:
+        datetime.date.fromisoformat(str(date))
+    except (TypeError, ValueError):
+        return Response(
+            {'detail': 'date 必须是 YYYY-MM-DD 格式'},
             status=http_status.HTTP_400_BAD_REQUEST
         )
 
     try:
         run_id = run_agent_async(date, legal_text, user=request.user)
-    except Exception as e:
+    except Exception:
         logger.exception("Agent 启动异常")
         return Response(
-            {'error': f'Agent 启动异常: {e}'},
+            {'detail': 'Agent 启动失败'},
             status=http_status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -127,6 +137,7 @@ def agent_trace(request, run_id):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def agent_download(request, run_id):
     """下载某次 run 生成的 docx（仅本人）。文件名用报告日期，而非 run_id。"""
     run = _get_owned_run(run_id, request.user)
@@ -154,6 +165,7 @@ def agent_download(request, run_id):
 
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def agent_answer(request, run_id):
     """
     提交人工回答（Phase 5：人在回路）。
@@ -181,6 +193,7 @@ def agent_answer(request, run_id):
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def agent_runs_list(request):
     """列出当前用户的历史 run（从 DB 聚合，按时间倒序）。
 

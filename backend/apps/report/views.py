@@ -241,14 +241,17 @@ def generate_docx(central, local, legal_text, output_stream, summary=None, repor
 @permission_classes([IsAuthenticated])
 def get_policies(request):
     date_str = request.query_params.get('date')
+    if date_str:
+        try:
+            datetime.date.fromisoformat(date_str)
+        except (TypeError, ValueError):
+            return Response({'detail': 'date 必须是 YYYY-MM-DD 格式'}, status=400)
+
     central_qs = CentralPolicy.objects.all()
     local_qs = LocalPolicy.objects.all()
     if date_str:
-        try:
-            central_qs = central_qs.filter(publish_time__date=date_str)
-            local_qs = local_qs.filter(publish_time__date=date_str)
-        except (ValueError, TypeError):
-            pass
+        central_qs = central_qs.filter(publish_time__date=date_str)
+        local_qs = local_qs.filter(publish_time__date=date_str)
     central = list(central_qs.values('id', 'title', 'type', 'publish_time', 'source_url', 'crawled_at'))
     local = list(local_qs.values('id', 'title', 'province', 'type', 'publish_time', 'source_url', 'crawled_at'))
     for item in central:
@@ -290,11 +293,39 @@ def policy_detail(request):
 @permission_classes([IsAuthenticated])
 def export_policies(request):
     selected = request.data.get('selected_ids', [])
-    legal_text = request.data.get('legal_text', '').strip()
+    legal_text = request.data.get('legal_text', '')
     report_date = request.data.get('date')  # 前端 selectedDate，用于标题日期
 
-    central_ids = [i['id'] for i in selected if i['source'] == "central"]
-    local_ids = [i['id'] for i in selected if i['source'] == "local"]
+    if not isinstance(selected, list):
+        return Response({'detail': 'selected_ids 必须是数组'}, status=400)
+    if not isinstance(legal_text, str):
+        return Response({'detail': 'legal_text 必须是字符串'}, status=400)
+    if report_date:
+        try:
+            datetime.date.fromisoformat(str(report_date))
+        except (TypeError, ValueError):
+            return Response({'detail': 'date 必须是 YYYY-MM-DD 格式'}, status=400)
+
+    central_ids = []
+    local_ids = []
+    for index, item in enumerate(selected):
+        if not isinstance(item, dict):
+            return Response({'detail': f'selected_ids[{index}] 必须是对象'}, status=400)
+        source = item.get('source')
+        policy_id = item.get('id')
+        if source not in ('central', 'local'):
+            return Response({'detail': f'selected_ids[{index}].source 无效'}, status=400)
+        if isinstance(policy_id, bool):
+            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=400)
+        try:
+            policy_id = int(policy_id)
+        except (TypeError, ValueError):
+            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=400)
+        if policy_id <= 0:
+            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=400)
+        (central_ids if source == 'central' else local_ids).append(policy_id)
+
+    legal_text = legal_text.strip()
 
     central = CentralPolicy.objects.filter(id__in=central_ids).values_list('title', 'content', 'type', 'source_url')
     local = LocalPolicy.objects.filter(id__in=local_ids).values_list('title', 'content', 'type', 'source_url')

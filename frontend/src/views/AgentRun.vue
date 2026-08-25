@@ -110,6 +110,7 @@
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       :show-close="false"
+      class="agent-dialog"
     >
       <div class="human-dialog-body">
         <p class="human-question">{{ humanDialog.question }}</p>
@@ -247,7 +248,7 @@ async function submitHumanAnswer() {
     humanDialog.visible = false
     ElMessage.success('已提交回答，Agent 继续运行')
   } catch (err) {
-    ElMessage.error('提交失败：' + (err.response?.data?.error || err.message))
+    ElMessage.error('提交失败：' + (err.response?.data?.detail || err.response?.data?.error || '请稍后重试'))
   } finally {
     humanDialog.submitting = false
   }
@@ -298,7 +299,8 @@ async function downloadDocx(runId) {
     let msg = err.message
     if (err.response?.data instanceof Blob) {
       try {
-        msg = JSON.parse(await err.response.data.text()).error || msg
+        const body = JSON.parse(await err.response.data.text())
+        msg = body.detail || body.error || msg
       } catch { /* 保持默认提示 */ }
     }
     ElMessage.error('docx 下载失败：' + msg)
@@ -372,7 +374,35 @@ onUnmounted(() => stopPolling())
 .date-value { color: #00e5ff; font-size: 15px; font-weight: 600; letter-spacing: 1px; }
 .change-date-btn { color: #80deea !important; }
 .change-date-btn:hover { color: #00e5ff !important; }
-.legal-input { width: 100%; }
+.legal-input {
+  width: 100%;
+  --el-input-bg-color: rgba(255, 255, 255, 0.08);
+  --el-input-border-color: rgba(0, 229, 255, 0.2);
+  --el-input-hover-border-color: rgba(0, 229, 255, 0.5);
+  --el-input-focus-border-color: #00e5ff;
+  --el-input-text-color: #e0f7fa;
+  --el-input-placeholder-color: #607d8b;
+}
+.legal-input :deep(.el-textarea__inner) {
+  min-height: 96px !important;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(0, 229, 255, 0.2) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  color: #e0f7fa !important;
+  transition: all 0.3s ease;
+}
+.legal-input :deep(.el-textarea__inner:hover) {
+  border-color: rgba(0, 229, 255, 0.5) !important;
+}
+.legal-input :deep(.el-textarea__inner:focus) {
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2) !important;
+}
+.legal-input :deep(.el-textarea__inner::placeholder) {
+  color: #607d8b !important;
+}
 
 .glow-btn {
   background: linear-gradient(90deg, #00e5ff, #2979ff) !important;
@@ -410,7 +440,36 @@ onUnmounted(() => stopPolling())
 .hint-sub { font-size: 13px; color: #607d8b; margin-top: 8px; }
 
 .human-dialog-body { padding: 0 4px; }
-.human-question { font-size: 15px; color: #303133; line-height: 1.6; margin-bottom: 20px; }
+.human-question { font-size: 15px; color: #e0f7fa; line-height: 1.6; margin-bottom: 20px; }
 .human-options { display: flex; flex-direction: column; gap: 12px; }
-.human-option { margin-right: 0 !important; }
+.human-option { margin-right: 0 !important; color: #e0f7fa; }
+
+:deep(.agent-dialog) {
+  background: #162b35;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+:deep(.agent-dialog .el-dialog__header) {
+  margin-right: 0;
+  padding: 20px 24px 12px;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+}
+:deep(.agent-dialog .el-dialog__title) {
+  color: #00e5ff;
+  font-weight: 600;
+}
+:deep(.agent-dialog .el-dialog__body) { padding: 20px 24px; }
+:deep(.agent-dialog .el-dialog__footer) { padding: 12px 24px 20px; }
+:deep(.agent-dialog .el-radio) { color: #e0f7fa; }
+:deep(.agent-dialog .el-radio__label) { color: #e0f7fa; }
+:deep(.agent-dialog .el-radio__inner) { background: transparent; border-color: #80deea; }
+:deep(.agent-dialog .el-radio.is-checked .el-radio__inner) { border-color: #00e5ff; background: #00e5ff; }
+
+@media (max-width: 640px) {
+  .agent-container { padding: 20px 16px 40px; }
+  .title { font-size: 26px; letter-spacing: 2px; }
+  .nav-bar { flex-wrap: wrap; gap: 8px; }
+  :deep(.agent-dialog) { width: calc(100% - 32px) !important; }
+}
 </style>
