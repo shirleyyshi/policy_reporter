@@ -132,6 +132,10 @@ def generate_docx(central, local, legal_text, output_stream, summary=None, repor
         policy_texts = [content for _, content, _, _ in central] + [content for _, content, _, _ in local]
         summary = call_deepseek_summarization(policy_texts)
 
+    # 文档属性（Word「文件-信息」面板与搜索索引可见，与文件名口径一致）
+    doc.core_properties.title = f"每日财税日报（{date_str_for_title}）"
+    doc.core_properties.author = "Policy Reporter"
+
     # 主标题
     h1 = doc.add_heading(f"每日财税日报（{date_str_for_title}）", 0)
     h1.alignment = WD_ALIGN_PARAGRAPH.CENTER

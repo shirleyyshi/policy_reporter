@@ -7,10 +7,17 @@
           <span class="brand-dot"></span>
           <span class="brand-name">Policy Reporter</span>
         </div>
-        <div class="user-chip">
-          <span class="user-avatar">{{ username.charAt(0).toUpperCase() }}</span>
-          <span class="user-name">{{ username }}</span>
-        </div>
+        <el-dropdown trigger="hover" @command="handleUserCommand">
+          <div class="user-chip">
+            <span class="user-avatar">{{ username.charAt(0).toUpperCase() }}</span>
+            <span class="user-name">{{ username }}</span>
+          </div>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
       <h1 class="title">财税政策日报</h1>
       <p class="slogan">本材料是为提供一般信息的用途编制，并非旨在成为可依赖的会计、税务、法律或其他专业意见。</p>
@@ -225,6 +232,16 @@ function goLocalEditor() { router.push('/editor/local') }
 function goLegalEditor() { router.push('/editor/legal') }
 function goAgent() { router.push('/agent') }
 
+// 头像下拉菜单
+function handleUserCommand(command) {
+  if (command === 'logout') {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('username')
+    router.push('/login')
+  }
+}
+
 // 导出日报
 async function exportReport() {
   const selected_ids = [
@@ -335,6 +352,8 @@ onMounted(() => {
   border: 1px solid rgba(0,229,255,0.2);
   padding: 4px 12px 4px 4px;
   border-radius: 20px;
+  cursor: pointer;
+  outline: none;
 }
 .user-avatar {
   width: 24px;

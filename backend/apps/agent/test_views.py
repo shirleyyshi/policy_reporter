@@ -246,7 +246,9 @@ class AgentDownloadEndpointTest(TestCase):
             resp = self.client.get(f'/api/agent/runs/{run_id}/download/')
         self.assertEqual(resp.status_code, 200)
         self.assertIn('attachment', resp['Content-Disposition'])
-        self.assertIn(f'agent_report_{run_id}.docx', resp['Content-Disposition'])
+        # 文件名用报告日期（_seed_run 的 task_input.date=2026-07-13），RFC 5987 URL 编码
+        from urllib.parse import quote
+        self.assertIn(quote('每日财税日报（2026.07.13）.docx'), resp['Content-Disposition'])
         self.assertEqual(resp.content, b'fake docx bytes')
 
 

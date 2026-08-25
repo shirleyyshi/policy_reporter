@@ -128,8 +128,9 @@ def agent_trace(request, run_id):
 
 @api_view(['GET'])
 def agent_download(request, run_id):
-    """下载某次 run 生成的 docx（仅本人）。"""
-    if not _get_owned_run(run_id, request.user):
+    """下载某次 run 生成的 docx（仅本人）。文件名用报告日期，而非 run_id。"""
+    run = _get_owned_run(run_id, request.user)
+    if not run:
         return Response(
             {'error': 'docx 未生成（run 不存在或未产出 docx）'},
             status=http_status.HTTP_404_NOT_FOUND
@@ -140,10 +141,15 @@ def agent_download(request, run_id):
             {'error': 'docx 未生成（run 不存在或未产出 docx）'},
             status=http_status.HTTP_404_NOT_FOUND
         )
+    # 文件名带报告日期：Word 窗口标题直接可读；无日期（异常数据）回退 run_id
+    date_str = (run.task_input.get('date') or '')[:10].replace('-', '.')
+    filename = f'每日财税日报（{date_str}）.docx' if date_str else f'agent_report_{run_id}.docx'
+    # RFC 5987：中文文件名需 URL 编码，避免部分浏览器/代理解析成乱码
+    from urllib.parse import quote
     return HttpResponse(
         docx_bytes,
         content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        headers={'Content-Disposition': f'attachment; filename="agent_report_{run_id}.docx"'}
+        headers={'Content-Disposition': f"attachment; filename*=UTF-8''{quote(filename)}"}
     )
 
 

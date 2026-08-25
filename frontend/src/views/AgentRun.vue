@@ -1,7 +1,7 @@
 <template>
   <div class="agent-container">
     <h1 class="title">Agent 自主日报生成</h1>
-    <p class="slogan">输入日期，Agent 将自主抓取、清洗、摘要并生成日报（ReAct 模式）</p>
+    <p class="slogan">Agent 将按当前所选日期自主抓取、清洗、摘要并生成日报（ReAct 模式）</p>
 
     <!-- 顶部导航 -->
     <div class="nav-bar">
@@ -12,14 +12,11 @@
     <!-- 输入区 -->
     <div class="input-section">
       <div class="input-row">
-        <label class="input-label">政策日期</label>
-        <el-date-picker
-          v-model="date"
-          type="date"
-          value-format="YYYY-MM-DD"
-          placeholder="选择日期"
-          class="date-picker"
-        />
+        <label class="input-label">政策日期（在首页调整）</label>
+        <div class="date-display">
+          <span class="date-value">{{ date }}</span>
+          <el-button text size="small" class="change-date-btn" @click="$router.push('/home')">修改日期</el-button>
+        </div>
       </div>
       <div class="input-row">
         <label class="input-label">合规资讯（可选）</label>
@@ -149,7 +146,8 @@ import api from '@/api'
 const route = useRoute()
 const router = useRouter()
 
-const date = ref(new Date().toISOString().split('T')[0])
+// 日期统一在首页调整（localStorage.selectedDate，与编辑页同源），本页只读
+const date = ref(localStorage.getItem('selectedDate') || new Date().toISOString().split('T')[0])
 const legalText = ref('')
 const running = ref(false)
 const result = ref(null)
@@ -260,7 +258,7 @@ async function loadHistory(runId) {
   try {
     const res = await api.get(`/api/agent/runs/${runId}/`)
     result.value = res.data
-    date.value = res.data.trace?.[0]?.input?.date || date.value
+    // 不回写 date：历史 run 的日期只属于该 run，不改变当前全局所选日期
     if (res.data.status === 'running' || res.data.status === 'waiting_human') {
       startPolling(runId)
       if (res.data.status === 'waiting_human' && res.data.pending_question) {
@@ -287,7 +285,9 @@ async function downloadDocx(runId) {
     const url = window.URL.createObjectURL(res.data)
     const link = document.createElement('a')
     link.href = url
-    link.setAttribute('download', `agent_report_${runId}.docx`)
+    // 文件名与手动导出口径一致：每日财税日报（YYYY.MM.DD）.docx
+    const dateStr = (date.value || '').replace(/-/g, '.')
+    link.setAttribute('download', dateStr ? `每日财税日报（${dateStr}）.docx` : `agent_report_${runId}.docx`)
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -355,7 +355,14 @@ onUnmounted(() => stopPolling())
 .input-section { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 24px; margin-bottom: 30px; }
 .input-row { margin-bottom: 16px; }
 .input-label { display: block; margin-bottom: 8px; color: #b2ebf2; font-size: 14px; }
-.date-picker { width: 100%; }
+.date-display {
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(0, 229, 255, 0.15);
+  border-radius: 8px; padding: 10px 14px;
+}
+.date-value { color: #00e5ff; font-size: 15px; font-weight: 600; letter-spacing: 1px; }
+.change-date-btn { color: #80deea !important; }
+.change-date-btn:hover { color: #00e5ff !important; }
 .legal-input { width: 100%; }
 
 .glow-btn { background: linear-gradient(90deg, #00e5ff, #2979ff); border: none; box-shadow: 0 0 15px rgba(0,229,255,0.6); color: white !important; font-weight: bold; }
