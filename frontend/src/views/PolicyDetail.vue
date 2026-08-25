@@ -217,4 +217,11 @@ onMounted(async () => {
   color: #80deea;
 }
 .empty-state p { margin-bottom: 12px; }
+@media (max-width: 640px) {
+  .detail-container { padding: 20px 16px 40px; }
+  .top-bar { align-items: flex-start; gap: 12px; }
+  .head-card { padding: 20px 18px; }
+  .content-card { padding: 22px 18px; }
+  .policy-title { font-size: 18px; }
+}
 </style>

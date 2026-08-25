@@ -16,7 +16,7 @@
     </div>
 
     <div v-else class="table-wrapper">
-      <el-table :data="runs" style="width: 100%" class="runs-table" stripe>
+      <el-table :data="runs" style="width: 100%" class="runs-table">
         <el-table-column label="Run ID" width="280">
           <template #default="{ row }">
             <span class="run-id">{{ row.run_id.substring(0, 8) }}...</span>
@@ -72,7 +72,7 @@ async function loadRuns() {
     runs.value = res.data.runs || []
     total.value = res.data.total || 0
   } catch (err) {
-    ElMessage.error('加载历史记录失败：' + (err.response?.data?.error || err.message))
+    ElMessage.error('加载历史记录失败：' + (err.response?.data?.detail || err.response?.data?.error || err.message))
   } finally {
     loading.value = false
   }
@@ -153,4 +153,10 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 .glow-btn:hover:not(:disabled) { box-shadow: 0 6px 24px rgba(0,229,255,0.6); transform: translateY(-2px); }
+@media (max-width: 640px) {
+  .runs-container { padding: 20px 16px 40px; }
+  .nav-bar { flex-wrap: wrap; gap: 8px; }
+  .table-wrapper { padding: 12px; overflow-x: auto; }
+  .runs-table { min-width: 820px; }
+}
 </style>

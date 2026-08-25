@@ -225,10 +225,10 @@ class PolicyDetailViewTest(TestCase):
         self.assertEqual(resp.status_code, 404)
 
     def test_invalid_id_string(self):
-        """非数字 id 返回 404 而非 500。"""
+        """非数字 id 返回 400 而非 500。"""
         self.client.force_authenticate(user=self.user)
         resp = self.client.get('/api/policies/detail/', {'source': 'central', 'id': 'abc'})
-        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(resp.status_code, 400)
 
     def test_invalid_source_400(self):
         """source 非 central/local 返回 400。"""

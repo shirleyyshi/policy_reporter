@@ -90,15 +90,16 @@ def agent_run(request):
     return Response({
         'run_id': str(run_id),
         'status': 'running',
-    })
+    }, status=http_status.HTTP_202_ACCEPTED)
 
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def agent_trace(request, run_id):
     """查询某次 run 的 trace（从 DB 读，仅本人可见）。"""
     if not _get_owned_run(run_id, request.user):
         return Response(
-            {'error': 'run_id 不存在'},
+            {'detail': 'run_id 不存在'},
             status=http_status.HTTP_404_NOT_FOUND
         )
     traces = AgentTrace.objects.filter(run_id=run_id).order_by('step')
@@ -143,13 +144,13 @@ def agent_download(request, run_id):
     run = _get_owned_run(run_id, request.user)
     if not run:
         return Response(
-            {'error': 'docx 未生成（run 不存在或未产出 docx）'},
+            {'detail': 'docx 未生成（run 不存在或未产出 docx）'},
             status=http_status.HTTP_404_NOT_FOUND
         )
     docx_bytes = get_docx(run_id)
     if not docx_bytes:
         return Response(
-            {'error': 'docx 未生成（run 不存在或未产出 docx）'},
+            {'detail': 'docx 未生成（run 不存在或未产出 docx）'},
             status=http_status.HTTP_404_NOT_FOUND
         )
     # 文件名带报告日期：Word 窗口标题直接可读；无日期（异常数据）回退 run_id
@@ -173,20 +174,21 @@ def agent_answer(request, run_id):
     resp: { ok: true/false }
     """
     answer = request.data.get('answer')
-    if not answer:
+    if not isinstance(answer, str) or not answer.strip():
         return Response(
-            {'error': 'answer 为必填项'},
+            {'detail': 'answer 为必填项'},
             status=http_status.HTTP_400_BAD_REQUEST
         )
+    answer = answer.strip()
     if not _get_owned_run(run_id, request.user):
         return Response(
-            {'error': 'run_id 不存在'},
+            {'detail': 'run_id 不存在'},
             status=http_status.HTTP_404_NOT_FOUND
         )
     ok = submit_answer(run_id, answer)
     if not ok:
         return Response(
-            {'ok': False, 'error': '该 run 未在等待人工回答（可能已超时或已回答）'},
+            {'detail': '该 run 未在等待人工回答（可能已超时或已回答）'},
             status=http_status.HTTP_409_CONFLICT
         )
     return Response({'ok': True})

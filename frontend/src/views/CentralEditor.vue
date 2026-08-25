@@ -190,7 +190,7 @@ onMounted(async () => {
   color: #0f2027 !important;
   font-weight: 600 !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0,229,255,0.3);
+  box-shadow: 0 4px 16px rgba(0,229,255,0.4);
 }
 .save-btn:hover { box-shadow: 0 6px 18px rgba(0,229,255,0.5); transform: translateY(-1px); }
 
@@ -296,4 +296,10 @@ onMounted(async () => {
   border: 1px dashed rgba(0,229,255,0.2);
 }
 .hint-sub { font-size: 13px; color: #607d8b; margin-top: 6px; }
+@media (max-width: 640px) {
+  .editor-container { padding: 20px 16px 40px; }
+  .top-bar { align-items: flex-start; gap: 16px; }
+  .top-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .info-bar { flex-wrap: wrap; }
+}
 </style>

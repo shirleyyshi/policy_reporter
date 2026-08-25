@@ -1,7 +1,9 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework import status as http_status
 from django.http import HttpResponse
+from django.db import IntegrityError, transaction
 from .models import CentralPolicy, LocalPolicy
 from io import BytesIO
 from docx.shared import Pt, RGBColor
@@ -245,7 +247,7 @@ def get_policies(request):
         try:
             datetime.date.fromisoformat(date_str)
         except (TypeError, ValueError):
-            return Response({'detail': 'date 必须是 YYYY-MM-DD 格式'}, status=400)
+            return Response({'detail': 'date 必须是 YYYY-MM-DD 格式'}, status=http_status.HTTP_400_BAD_REQUEST)
 
     central_qs = CentralPolicy.objects.all()
     local_qs = LocalPolicy.objects.all()
@@ -271,19 +273,25 @@ def policy_detail(request):
     source = request.query_params.get('source')
     policy_id = request.query_params.get('id')
     if source not in ('central', 'local'):
-        return Response({'error': 'source 必须为 central 或 local'}, status=400)
+        return Response({'detail': 'source 必须为 central 或 local'}, status=http_status.HTTP_400_BAD_REQUEST)
     if not policy_id:
-        return Response({'error': 'id 为必填项'}, status=400)
+        return Response({'detail': 'id 为必填项'}, status=http_status.HTTP_400_BAD_REQUEST)
+    try:
+        policy_id = int(policy_id)
+        if policy_id <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return Response({'detail': 'id 必须是正整数'}, status=http_status.HTTP_400_BAD_REQUEST)
     try:
         qs = CentralPolicy if source == 'central' else LocalPolicy
         fields = ['id', 'title', 'content', 'type', 'publish_time', 'source_url', 'crawled_at']
         if source == 'local':
             fields.insert(3, 'province')
         policy = qs.objects.filter(id=policy_id).values(*fields).first()
-    except ValueError:
-        return Response({'error': '政策不存在'}, status=404)
+    except Exception:
+        return Response({'detail': '政策查询失败'}, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
     if policy is None:
-        return Response({'error': '政策不存在'}, status=404)
+        return Response({'detail': '政策不存在'}, status=http_status.HTTP_404_NOT_FOUND)
     policy['source'] = source
     return Response(policy)
 
@@ -297,14 +305,14 @@ def export_policies(request):
     report_date = request.data.get('date')  # 前端 selectedDate，用于标题日期
 
     if not isinstance(selected, list):
-        return Response({'detail': 'selected_ids 必须是数组'}, status=400)
+        return Response({'detail': 'selected_ids 必须是数组'}, status=http_status.HTTP_400_BAD_REQUEST)
     if not isinstance(legal_text, str):
-        return Response({'detail': 'legal_text 必须是字符串'}, status=400)
+        return Response({'detail': 'legal_text 必须是字符串'}, status=http_status.HTTP_400_BAD_REQUEST)
     if report_date:
         try:
             datetime.date.fromisoformat(str(report_date))
         except (TypeError, ValueError):
-            return Response({'detail': 'date 必须是 YYYY-MM-DD 格式'}, status=400)
+            return Response({'detail': 'date 必须是 YYYY-MM-DD 格式'}, status=http_status.HTTP_400_BAD_REQUEST)
 
     central_ids = []
     local_ids = []
@@ -386,9 +394,13 @@ def register(request):
     try:
         validate_password(password)
     except ValidationError as exc:
-        return Response({'detail': '；'.join(exc.messages)}, status=400)
-    User.objects.create_user(username=username, password=password)
-    return Response({'detail': '注册成功'}, status=201)
+        return Response({'detail': '；'.join(exc.messages)}, status=http_status.HTTP_400_BAD_REQUEST)
+    try:
+        with transaction.atomic():
+            User.objects.create_user(username=username, password=password)
+    except IntegrityError:
+        return Response({'detail': '用户名已存在'}, status=http_status.HTTP_409_CONFLICT)
+    return Response({'detail': '注册成功'}, status=http_status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])

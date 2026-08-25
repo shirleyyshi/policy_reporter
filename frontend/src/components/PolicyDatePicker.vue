@@ -288,7 +288,7 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 .pdp-nav:hover:not(:disabled) {
-  color: #00b8d4;
+  color: #00e5ff;
   border-color: #00e5ff;
 }
 .pdp-nav:disabled {
@@ -330,11 +330,10 @@ onUnmounted(() => {
   cursor: default;
 }
 
-/* 核心着色：有政策 = 主题青色块；无政策 = 黑色默认字 */
+/* 核心着色：有政策 = 主题青色字；无政策 = 黑色字 */
 .pdp-cell.has-policy {
-  color: #00b8d4;
+  color: #00e5ff;
   font-weight: 700;
-  background: rgba(0, 229, 255, 0.12);
 }
 .pdp-cell.future {
   color: #c0c4cc !important;
@@ -354,7 +353,7 @@ onUnmounted(() => {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #00b8d4;
+  background: #00e5ff;
 }
 .pdp-cell.selected {
   background: linear-gradient(135deg, #00e5ff, #2979ff);
@@ -388,7 +387,7 @@ onUnmounted(() => {
   border-radius: 50%;
   display: inline-block;
 }
-.dot.has { background: #00b8d4; }
+.dot.has { background: #00e5ff; }
 .dot.none { background: #303133; opacity: 0.65; }
 .legend-note {
   margin-left: auto;

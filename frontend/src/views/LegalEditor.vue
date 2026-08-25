@@ -118,7 +118,7 @@ function returnWithoutSave() {
   color: #0f2027 !important;
   font-weight: 600 !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0,229,255,0.3);
+  box-shadow: 0 4px 16px rgba(0,229,255,0.4);
 }
 .save-btn:hover { box-shadow: 0 6px 18px rgba(0,229,255,0.5); transform: translateY(-1px); }
 
@@ -165,7 +165,7 @@ function returnWithoutSave() {
   resize: vertical;
   background: rgba(255, 255, 255, 0.05);
   color: #e0f7fa;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: inherit;
   line-height: 1.6;
   box-sizing: border-box;
   outline: none;
@@ -177,4 +177,11 @@ function returnWithoutSave() {
 }
 
 .legal-textarea::placeholder { color: #607d8b; }
+@media (max-width: 640px) {
+  .editor-container { padding: 20px 16px 40px; }
+  .top-bar { align-items: flex-start; gap: 16px; }
+  .top-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .info-bar { flex-wrap: wrap; }
+  .legal-textarea { height: 360px; }
+}
 </style>

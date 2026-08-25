@@ -127,13 +127,13 @@ class AgentRunEndpointTest(TestCase):
     def test_missing_date_returns_400(self):
         resp = self.client.post('/api/agent/run/', {}, format='json')
         self.assertEqual(resp.status_code, 400)
-        self.assertIn('date', resp.data['error'])
+        self.assertIn('date', resp.data['detail'])
 
     def test_starts_agent_and_returns_running(self):
         mock_run_id = uuid.uuid4()
         with patch('agent.views.run_agent_async', return_value=mock_run_id):
             resp = self.client.post('/api/agent/run/', {'date': '2026-07-13'}, format='json')
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 202)
         self.assertEqual(resp.data['status'], 'running')
         self.assertEqual(resp.data['run_id'], str(mock_run_id))
 
@@ -141,7 +141,7 @@ class AgentRunEndpointTest(TestCase):
         with patch('agent.views.run_agent_async', side_effect=Exception("boom")):
             resp = self.client.post('/api/agent/run/', {'date': '2026-07-13'}, format='json')
         self.assertEqual(resp.status_code, 500)
-        self.assertIn('boom', resp.data['error'])
+        self.assertIn('启动失败', resp.data['detail'])
 
     def test_legal_text_stripped(self):
         """legal_text 应被 strip，且以当前用户作为归属启动。"""
@@ -271,7 +271,7 @@ class AgentAnswerEndpointTest(TestCase):
         with patch('agent.views.submit_answer', return_value=False):
             resp = self.client.post(f'/api/agent/runs/{run_id}/answer/', {'answer': 'A'}, format='json')
         self.assertEqual(resp.status_code, 409)
-        self.assertFalse(resp.data['ok'])
+        self.assertIn('等待人工回答', resp.data['detail'])
 
     def test_200_when_submitted(self):
         run_id = uuid.uuid4()
