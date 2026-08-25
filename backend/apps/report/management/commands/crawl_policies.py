@@ -280,8 +280,14 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
             break
 
         # 3. 逐条抓详情页
+        # 去重前置：先查库，已入库的 URL 直接跳过，不再下载详情页
+        # （否则每天都会把列表页上所有旧政策的详情页重新下载一遍，耗时且无意义）
+        Model = CentralPolicy if policy_type == "central" else LocalPolicy
         for title_hint, detail_url in page_new_links:
             stats["crawled"] += 1
+            if not dry_run and Model.objects.filter(source_url=detail_url).exists():
+                stats["skipped"] += 1
+                continue
             try:
                 # Referer 设为列表页，模拟浏览器从列表点进详情（部分政府站防盗链）
                 detail_tree = fetch_page(detail_url, encoding, timeout=timeout, referer=url, retries=retries)
@@ -309,13 +315,7 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
                     print(f"  [试运行] {title[:50]}  date={pub_date.strftime('%Y-%m-%d')}  content={len(content)}字")
                     stats["new"] += 1
                 else:
-                    # 去重 + 写入
-                    Model = CentralPolicy if policy_type == "central" else LocalPolicy
-                    if Model.objects.filter(source_url=detail_url).exists():
-                        stats["skipped"] += 1
-                        time.sleep(delay)
-                        continue
-
+                    # 写入（去重已在抓取前完成）
                     create_kwargs = {
                         "title": title[:500],
                         "content": content,
@@ -408,14 +408,18 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"[{config['name']}] "
                 f"抓取 {stats['pages_fetched']} 页 / {stats['crawled']} 条，"
-                f"新增 {stats['new']} 条，跳过 {stats['skipped']} 条，"
-                f"过滤 {stats['filtered']} 条，失败 {stats['failed']} 条"
+                f"新增 {stats['new']} 条，已入库跳过 {stats['skipped']} 条，"
+                f"标题过滤 {stats['filtered']} 条，失败 {stats['failed']} 条"
             )
 
         elapsed = time.time() - start_time
         self.stdout.write(self.style.SUCCESS(
             f"\n合计：抓取 {total_stats['pages_fetched']} 页 / {total_stats['crawled']} 条，"
-            f"新增 {total_stats['new']} 条，跳过 {total_stats['skipped']} 条，"
-            f"过滤 {total_stats['filtered']} 条，失败 {total_stats['failed']} 条"
+            f"新增 {total_stats['new']} 条，已入库跳过 {total_stats['skipped']} 条，"
+            f"标题过滤 {total_stats['filtered']} 条，失败 {total_stats['failed']} 条"
         ))
+        if not dry_run and total_stats["new"] == 0:
+            self.stdout.write(self.style.NOTICE(
+                "本次无新增：列表页上的政策均已入库（去重跳过）或站点当日暂无新发布，属正常现象"
+            ))
         self.stdout.write(f"耗时：{elapsed:.1f} 秒")

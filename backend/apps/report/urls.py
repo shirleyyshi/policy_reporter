@@ -12,4 +12,5 @@ urlpatterns = [
     path('policies/detail/', views.policy_detail, name='policy_detail'),
     path('export/', views.export_policies, name='export_policies'),
     path('policy-counts/', views.get_policy_counts, name='policy-counts'),
+    path('policy-dates/', views.get_policy_dates, name='policy-dates'),
 ]

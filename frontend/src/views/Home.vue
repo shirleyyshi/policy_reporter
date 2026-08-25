@@ -27,16 +27,7 @@
     <section class="date-bar">
       <div class="date-left">
         <span class="date-label">政策日期</span>
-        <el-date-picker
-          v-model="selectedDate"
-          type="date"
-          value-format="YYYY-MM-DD"
-          placeholder="选择日期"
-          :clearable="false"
-          :disabled-date="disableFutureDate"
-          class="date-picker"
-          @change="onDateChange"
-        />
+        <PolicyDatePicker v-model="selectedDate" @change="onDateChange" />
       </div>
       <div class="date-quick">
         <el-button text class="quick-btn" @click="shiftDate(-1)">前一天</el-button>
@@ -146,6 +137,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElLoading } from 'element-plus'
 import api from '@/api'
 import { selectionStore } from '@/stores/selection'
+import PolicyDatePicker from '@/components/PolicyDatePicker.vue'
 
 const router = useRouter()
 
@@ -156,14 +148,7 @@ const username = ref(localStorage.getItem('username') || '用户')
 const todayStr = new Date().toISOString().split('T')[0]
 const selectedDate = ref(localStorage.getItem('selectedDate') || todayStr)
 
-// 禁用日期选择器中的未来日期
-function disableFutureDate(date) {
-  const today = new Date()
-  today.setHours(23, 59, 59, 999)
-  return date.getTime() > today.getTime()
-}
-
-// 当前已是今天时，禁用"后一天"按钮
+// 当前已是今天时，禁用"后一天"按钮（未来日期禁用逻辑在 PolicyDatePicker 内部处理）
 const isMaxDate = computed(() => selectedDate.value >= todayStr)
 
 // 政策数据
@@ -306,12 +291,11 @@ onMounted(() => {
 <style scoped>
 .home-container {
   min-height: 100vh;
-  padding: 24px 48px 40px;
+  padding: 24px 48px 60px;
   max-width: 1100px;
   margin: 0 auto;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   color: #e0f7fa;
-  font-family: 'Inter', -apple-system, sans-serif;
   box-sizing: border-box;
 }
 
@@ -377,10 +361,11 @@ onMounted(() => {
   color: #00e5ff;
   letter-spacing: 3px;
   text-shadow: 0 0 20px rgba(0,229,255,0.3);
+  font-family: 'Orbitron', 'Inter', 'Microsoft YaHei', sans-serif;
 }
 .slogan {
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   color: #80deea;
   margin: 0;
   opacity: 0.85;
@@ -408,7 +393,6 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 500;
 }
-.date-picker { width: 170px; }
 .date-quick { display: flex; gap: 4px; }
 .quick-btn {
   color: #80deea !important;

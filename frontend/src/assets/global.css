@@ -1,8 +1,9 @@
-/* 全局通用样式 */
+/* 全局通用样式（字体栈与 index.html 一致，页面级不再单独声明 font-family） */
 body {
     margin: 0;
-    font-family: "Microsoft YaHei", sans-serif;
-    background-color: #f5f7fa;
+    font-family: 'Inter', 'Microsoft YaHei', 'PingFang SC', -apple-system, sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #e0f7fa;
 }
 
 .el-card {

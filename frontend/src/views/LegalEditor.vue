@@ -76,7 +76,6 @@ function returnWithoutSave() {
   margin: 0 auto;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   color: #e0f7fa;
-  font-family: 'Inter', -apple-system, sans-serif;
   box-sizing: border-box;
 }
 

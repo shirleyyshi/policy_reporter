@@ -100,11 +100,10 @@ onMounted(async () => {
 .detail-container {
   min-height: 100vh;
   padding: 24px 48px 60px;
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   color: #e0f7fa;
-  font-family: 'Inter', -apple-system, sans-serif;
   box-sizing: border-box;
 }
 

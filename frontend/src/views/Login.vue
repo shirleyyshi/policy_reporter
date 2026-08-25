@@ -127,7 +127,6 @@ async function login() {
   min-height: 100vh;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   color: #e0f7fa;
-  font-family: 'Inter', -apple-system, sans-serif;
   overflow: hidden;
 }
 

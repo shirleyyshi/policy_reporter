@@ -318,6 +318,28 @@ def get_policy_counts(request):
     })
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_policy_dates(request):
+    """返回每个发布日期的政策条数（中央+地方合并），供日期选择器着色。
+    示例：{"2026-08-25": 4, "2026-08-24": 7}
+    """
+    from django.db.models import Count
+    from django.db.models.functions import TruncDate
+
+    counts = {}
+    for model in (CentralPolicy, LocalPolicy):
+        rows = (model.objects
+                .annotate(day=TruncDate('publish_time'))
+                .values('day')
+                .annotate(n=Count('id')))
+        for row in rows:
+            if row['day']:
+                key = row['day'].isoformat()
+                counts[key] = counts.get(key, 0) + row['n']
+    return Response(counts)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):

@@ -337,16 +337,25 @@ onUnmounted(() => stopPolling())
 <style scoped>
 .agent-container {
   min-height: 100vh;
-  padding: 40px 60px;
-  max-width: 900px;
+  padding: 24px 48px 60px;
+  max-width: 1100px;
   margin: 0 auto;
   background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   color: #e0f7fa;
-  font-family: 'Inter', sans-serif;
+  box-sizing: border-box;
 }
 
-.title { text-align: center; font-weight: bold; font-size: 32px; margin-bottom: 12px; font-family: 'Orbitron', sans-serif; color: #00e5ff; letter-spacing: 2px; }
-.slogan { text-align: center; font-size: 15px; color: #80deea; margin-bottom: 20px; }
+.title {
+  text-align: center;
+  font-weight: 700;
+  font-size: 32px;
+  margin: 0 0 6px;
+  color: #00e5ff;
+  letter-spacing: 3px;
+  text-shadow: 0 0 20px rgba(0,229,255,0.3);
+  font-family: 'Orbitron', 'Inter', 'Microsoft YaHei', sans-serif;
+}
+.slogan { text-align: center; font-size: 13px; color: #80deea; margin: 0 0 20px; opacity: 0.85; }
 
 .nav-bar { display: flex; justify-content: space-between; margin-bottom: 24px; }
 .nav-btn { color: #80deea !important; }
@@ -365,8 +374,16 @@ onUnmounted(() => stopPolling())
 .change-date-btn:hover { color: #00e5ff !important; }
 .legal-input { width: 100%; }
 
-.glow-btn { background: linear-gradient(90deg, #00e5ff, #2979ff); border: none; box-shadow: 0 0 15px rgba(0,229,255,0.6); color: white !important; font-weight: bold; }
-.glow-btn:hover { box-shadow: 0 0 25px rgba(0,229,255,1); transform: translateY(-2px); }
+.glow-btn {
+  background: linear-gradient(90deg, #00e5ff, #2979ff) !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(0,229,255,0.4);
+  color: #0f2027 !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+}
+.glow-btn:hover:not(:disabled) { box-shadow: 0 6px 24px rgba(0,229,255,0.6); transform: translateY(-2px); }
 .glow-btn:disabled { opacity: 0.5; }
 
 .result-section { margin-top: 20px; }

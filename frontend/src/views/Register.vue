@@ -77,7 +77,8 @@ async function register() {
   border: 1px solid rgba(0, 229, 255, .2);
   border-radius: 20px;
   background: rgba(255, 255, 255, .07);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .4);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .4), 0 0 0 1px rgba(255,255,255,.05) inset;
 }
 .brand-area { text-align: center; margin-bottom: 28px; }
 .brand-logo {
@@ -85,7 +86,13 @@ async function register() {
   display: flex; align-items: center; justify-content: center;
   color: #0f2027; background: #00e5ff; font-weight: 800;
 }
-h1 { margin: 0 0 8px; color: #00e5ff; font-size: 24px; }
+h1 {
+  margin: 0 0 8px;
+  color: #00e5ff;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
 .brand-area p { margin: 0; color: #80deea; font-size: 13px; }
 .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 .form-group label { color: #b2ebf2; font-size: 13px; }
