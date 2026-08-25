@@ -24,24 +24,22 @@ Policy Reporter is an automated policy intelligence platform for China's fiscal 
 **Policy Reporter — 财税政策日报智能生成系统**（独立开发，全栈 + LLM Agent）
 
 - 独立设计并实现全栈系统：Vue 3 前端 + Django/DRF 后端 + MySQL + Docker 容器化部署，覆盖从数据采集到成品导出的完整链路
-- 实现多站点定时爬虫：礼貌限速、增量去重、失败重试与"失败不落库"策略，采集数据全量可溯源（原文链接 + 采集时间）
-- 基于 ReAct 范式构建 LLM Agent：模型自主规划工具调用，配套 Critic 质量审查、Replanner 重规划、步数止损与人在回路确认机制，运行轨迹逐步落库可回看
-- 集成 RAG 检索增强与 DeepSeek API 生成结构化摘要，产出排版规范的 Word 日报
+- 基于 ReAct 范式构建 LLM Agent：模型自主规划工具调用，配套 Critic 质量审查、Replanner 重规划、步数止损与人在回路确认，运行轨迹逐步落库可回看
+- 构建端到端数据与生成管线：多站点定时爬虫（礼貌限速、增量去重、全量可溯源）+ RAG 检索增强 + DeepSeek API，自动产出排版规范的 Word 日报
 - 建立质量保障体系：200+ 自动化测试（CI 覆盖率门槛 80%），并通过组件消融实验用数据验证 Critic/Replanner 等设计的必要性
-- 落地多用户安全：JWT 双令牌自动续期、用户级数据隔离、越权访问防护与端口暴露面治理
+- 落地多用户安全与生产化运维：JWT 双令牌自动续期、用户级数据隔离、越权访问防护，Docker 健康检查 + 每日 cron 自动运维
 
 ### English（bullet style, résumé-ready）
 
 **Policy Reporter — AI-Powered Fiscal Policy Daily Report System** (solo developer, full-stack + LLM agent)
 
 - Independently designed and built a full-stack system: Vue 3 frontend, Django/DRF backend, MySQL, and Dockerized deployment covering the entire pipeline from data ingestion to report export
-- Built multi-site scheduled crawlers with polite rate limiting, incremental deduplication, retry-and-skip-on-failure semantics, and fully traceable records (source URL + crawl timestamp)
 - Engineered a ReAct-style LLM agent with autonomous tool planning, a critic/replanner quality loop, step-budget safeguards, and human-in-the-loop checkpoints; every step is persisted and replayable in the web UI
-- Integrated RAG retrieval and the DeepSeek API to produce structured summaries and formatted Word reports
+- Built the end-to-end data and generation pipeline: multi-site scheduled crawlers (polite rate limiting, incremental deduplication, fully traceable records) + RAG retrieval + the DeepSeek API, automatically producing formatted Word reports
 - Established quality engineering: 200+ automated tests (80% CI coverage gate) and component ablation studies quantifying the contribution of each agent module
-- Delivered multi-user security: dual-token JWT with silent refresh, per-user data isolation, cross-user access protection, and attack-surface reduction on exposed ports
+- Delivered multi-user security and production operations: dual-token JWT with silent refresh, per-user data isolation, cross-user access protection, plus Docker health checks and daily cron maintenance
 
 ### 使用提示
 
-- 简历空间紧张时，条目可裁到 4 条（建议保留：全栈独立开发、Agent 工程、质量保障、安全）
+- 简历空间紧张时可再裁到 4 条（建议合并：把安全/运维并入第 1 条全栈部署）
 - 面试展开每一条的口径见 `interview/INTERVIEW_PLAYBOOK.md`；数字的最新精确值以该文件为准
