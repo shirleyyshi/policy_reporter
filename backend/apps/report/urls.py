@@ -8,9 +8,9 @@ urlpatterns = [
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/register/', views.register, name='register'),
     path('auth/me/', views.me, name='me'),
-    path('policies/', views.get_policies, name='get_policies'),
+    path('policies/', views.policy_list, name='policy_list'),
     path('policies/detail/', views.policy_detail, name='policy_detail'),
-    path('export/', views.export_policies, name='export_policies'),
-    path('policy-counts/', views.get_policy_counts, name='policy-counts'),
-    path('policy-dates/', views.get_policy_dates, name='policy-dates'),
+    path('export/', views.policy_export, name='policy_export'),
+    path('policy-counts/', views.policy_counts, name='policy_counts'),
+    path('policy-dates/', views.policy_dates, name='policy_dates'),
 ]

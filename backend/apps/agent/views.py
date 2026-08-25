@@ -196,7 +196,7 @@ def agent_answer(request, run_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def agent_runs_list(request):
+def agent_run_list(request):
     """列出当前用户的历史 run（从 DB 聚合，按时间倒序）。
 
     隔离：只聚合 AgentRun.user = request.user 的 run。

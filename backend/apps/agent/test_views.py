@@ -5,7 +5,7 @@
 - agent_trace：存在 / 不存在 / cache 命中 / cache miss 走 _infer_status
 - agent_download：有 docx / 无 docx
 - agent_answer：正常提交 / 缺 answer / 无等待中 run
-- agent_runs_list：空列表 / 多条 run
+- agent_run_list：空列表 / 多条 run
 - _infer_status：done/failed/incomplete/unknown + 旧 run 关键词回退
 - _has_docx_trace
 

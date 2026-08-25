@@ -241,7 +241,7 @@ def generate_docx(central, local, legal_text, output_stream, summary=None, repor
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_policies(request):
+def policy_list(request):
     date_str = request.query_params.get('date')
     if date_str:
         try:
@@ -299,7 +299,7 @@ def policy_detail(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def export_policies(request):
+def policy_export(request):
     selected = request.data.get('selected_ids', [])
     legal_text = request.data.get('legal_text', '')
     report_date = request.data.get('date')  # 前端 selectedDate，用于标题日期
@@ -318,19 +318,19 @@ def export_policies(request):
     local_ids = []
     for index, item in enumerate(selected):
         if not isinstance(item, dict):
-            return Response({'detail': f'selected_ids[{index}] 必须是对象'}, status=400)
+            return Response({'detail': f'selected_ids[{index}] 必须是对象'}, status=http_status.HTTP_400_BAD_REQUEST)
         source = item.get('source')
         policy_id = item.get('id')
         if source not in ('central', 'local'):
-            return Response({'detail': f'selected_ids[{index}].source 无效'}, status=400)
+            return Response({'detail': f'selected_ids[{index}].source 无效'}, status=http_status.HTTP_400_BAD_REQUEST)
         if isinstance(policy_id, bool):
-            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=400)
+            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=http_status.HTTP_400_BAD_REQUEST)
         try:
             policy_id = int(policy_id)
         except (TypeError, ValueError):
-            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=400)
+            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=http_status.HTTP_400_BAD_REQUEST)
         if policy_id <= 0:
-            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=400)
+            return Response({'detail': f'selected_ids[{index}].id 必须是正整数'}, status=http_status.HTTP_400_BAD_REQUEST)
         (central_ids if source == 'central' else local_ids).append(policy_id)
 
     legal_text = legal_text.strip()
@@ -348,7 +348,7 @@ def export_policies(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_policy_counts(request):
+def policy_counts(request):
     central_count = CentralPolicy.objects.count()
     local_count = LocalPolicy.objects.count()
     return Response({
@@ -359,7 +359,7 @@ def get_policy_counts(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_policy_dates(request):
+def policy_dates(request):
     """返回每个发布日期的政策条数（中央+地方合并），供日期选择器着色。
     示例：{"2026-08-25": 4, "2026-08-24": 7}
     """
@@ -386,11 +386,11 @@ def register(request):
     username = str(request.data.get('username', '')).strip()
     password = str(request.data.get('password', ''))
     if not username or not password:
-        return Response({'detail': '用户名和密码不能为空'}, status=400)
+        return Response({'detail': '用户名和密码不能为空'}, status=http_status.HTTP_400_BAD_REQUEST)
     if len(username) > 150:
-        return Response({'detail': '用户名不能超过 150 个字符'}, status=400)
+        return Response({'detail': '用户名不能超过 150 个字符'}, status=http_status.HTTP_400_BAD_REQUEST)
     if User.objects.filter(username=username).exists():
-        return Response({'detail': '用户名已存在'}, status=400)
+        return Response({'detail': '用户名已存在'}, status=http_status.HTTP_400_BAD_REQUEST)
     try:
         validate_password(password)
     except ValidationError as exc:
@@ -419,7 +419,7 @@ def health(request):
         db_ok = False
     return Response(
         {'status': 'ok' if db_ok else 'degraded', 'db': db_ok},
-        status=200 if db_ok else 503,
+        status=http_status.HTTP_200_OK if db_ok else http_status.HTTP_503_SERVICE_UNAVAILABLE,
     )
 
 

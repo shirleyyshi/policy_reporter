@@ -4,7 +4,7 @@ report 模块单元测试。
 覆盖：
 - CentralPolicy / LocalPolicy 模型基本行为
 - generate_docx 函数（核心导出逻辑）
-- get_policies / get_policy_counts / export_policies 视图鉴权与返回
+- policy_list / policy_counts / policy_export 视图鉴权与返回
 - crawl_policies.parse_date（爬虫日期解析）
 
 运行：
@@ -128,7 +128,7 @@ class GenerateDocxTest(TestCase):
 
 
 class GetPoliciesViewTest(TestCase):
-    """测试 get_policies 视图。"""
+    """测试 policy_list 视图。"""
 
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass123')
@@ -264,7 +264,7 @@ class HealthViewTest(TestCase):
 
 
 class GetPolicyCountsViewTest(TestCase):
-    """测试 get_policy_counts 视图。"""
+    """测试 policy_counts 视图。"""
 
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass123')
@@ -298,7 +298,7 @@ class GetPolicyCountsViewTest(TestCase):
 
 
 class ExportPoliciesViewTest(TestCase):
-    """测试 export_policies 视图。"""
+    """测试 policy_export 视图。"""
 
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass123')
