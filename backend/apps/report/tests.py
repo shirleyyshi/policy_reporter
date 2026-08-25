@@ -107,6 +107,25 @@ class GenerateDocxTest(TestCase):
         # docx 是二进制，无法直接断言文本包含，只验证不抛异常 + 文件非空
         self.assertGreater(len(out.getvalue()), 0)
 
+    def test_empty_source_url_no_invalid_relationship(self):
+        """空 source_url（手动录入政策）不得产生 Target='' 外链关系。
+
+        Word 对关系合法性严格校验，空 Target 的外链会导致整份文档拒开
+        （python-docx 宽松可打开，必须解包 .rels 断言）。
+        """
+        import zipfile
+        central = [
+            ("手动录入政策", "内容", "财政", ""),
+            ("爬取政策", "内容", "税务", "http://example.com/a"),
+        ]
+        local = [("地方手动政策", "内容", "综合", "")]
+        out = BytesIO()
+        generate_docx(central, local, "", out, summary="• 摘要", report_date="2026-01-15")
+        with zipfile.ZipFile(BytesIO(out.getvalue())) as z:
+            rels = z.read("word/_rels/document.xml.rels").decode("utf-8")
+        self.assertNotIn('Target=""', rels)
+        self.assertIn("http://example.com/a", rels)
+
 
 class GetPoliciesViewTest(TestCase):
     """测试 get_policies 视图。"""

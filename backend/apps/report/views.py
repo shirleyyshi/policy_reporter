@@ -30,6 +30,12 @@ def set_font(run, font_name="微软雅黑", font_size=12, bold=False):
 
 
 def add_hyperlink(paragraph, url, text, font_name="微软雅黑", font_size=11):
+    # 空 URL 必须降级为纯文本：Target="" 的外链关系会被 Word 判为非法文档直接拒开
+    # （python-docx 宽松可打开，Word 严格校验整份文件）
+    if not url:
+        run = paragraph.add_run(text)
+        set_font(run, font_name=font_name, font_size=font_size)
+        return None
     part = paragraph.part
     r_id = part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
                           is_external=True)
