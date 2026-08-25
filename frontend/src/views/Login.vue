@@ -65,6 +65,10 @@
         </el-button>
       </div>
 
+      <div class="register-link">
+        没有帐户？<router-link to="/register">去注册</router-link>
+      </div>
+
       <div class="footer-note">
         ReAct Agent · RAG · Docx Export
       </div>
@@ -264,6 +268,22 @@ async function login() {
 .login-btn:hover:not(:disabled) {
   box-shadow: 0 6px 24px rgba(0, 229, 255, 0.6);
   transform: translateY(-2px);
+}
+
+/* 注册入口 */
+.register-link {
+  margin-top: 18px;
+  text-align: center;
+  color: #80deea;
+  font-size: 13px;
+}
+.register-link a {
+  color: #00e5ff;
+  text-decoration: none;
+  font-weight: 600;
+}
+.register-link a:hover {
+  text-decoration: underline;
 }
 
 /* 底部说明 */

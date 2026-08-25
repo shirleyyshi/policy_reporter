@@ -13,6 +13,9 @@ from collections import defaultdict
 import datetime
 from openai import OpenAI  # 使用 OpenAI SDK 兼容 DeepSeek
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 # DeepSeek API 配置（从 settings 读取，密钥外置到 .env）
 openai_client = OpenAI(api_key=settings.DEEPSEEK_API_KEY, base_url=settings.DEEPSEEK_BASE_URL)
@@ -303,6 +306,26 @@ def get_policy_counts(request):
         "central_count": central_count,
         "local_count": local_count
     })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register(request):
+    """创建普通用户账号；注册接口不授予管理员权限。"""
+    username = str(request.data.get('username', '')).strip()
+    password = str(request.data.get('password', ''))
+    if not username or not password:
+        return Response({'detail': '用户名和密码不能为空'}, status=400)
+    if len(username) > 150:
+        return Response({'detail': '用户名不能超过 150 个字符'}, status=400)
+    if User.objects.filter(username=username).exists():
+        return Response({'detail': '用户名已存在'}, status=400)
+    try:
+        validate_password(password)
+    except ValidationError as exc:
+        return Response({'detail': '；'.join(exc.messages)}, status=400)
+    User.objects.create_user(username=username, password=password)
+    return Response({'detail': '注册成功'}, status=201)
 
 
 @api_view(['GET'])

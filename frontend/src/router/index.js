@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
     { path: '/', redirect: '/login' },
     { path: '/login', name: 'Login', component: () => import('@/views/Login.vue') },
+    { path: '/register', name: 'Register', component: () => import('@/views/Register.vue') },
     { path: '/home', name: 'Home', component: () => import('@/views/Home.vue') },
     { path: '/editor/central', name: 'CentralEditor', component: () => import('@/views/CentralEditor.vue') },
     { path: '/editor/local', name: 'LocalEditor', component: () => import('@/views/LocalEditor.vue') },
@@ -21,7 +22,7 @@ const router = createRouter({
 // 路由守卫：未登录则跳转登录页
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('access_token')
-    if (to.path === '/login') {
+    if (to.path === '/login' || to.path === '/register') {
         next()
     } else if (!token) {
         next('/login')

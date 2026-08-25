@@ -6,6 +6,7 @@ urlpatterns = [
     path('health/', views.health, name='health'),
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/register/', views.register, name='register'),
     path('auth/me/', views.me, name='me'),
     path('policies/', views.get_policies, name='get_policies'),
     path('policies/detail/', views.policy_detail, name='policy_detail'),

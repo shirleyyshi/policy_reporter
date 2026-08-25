@@ -309,6 +309,44 @@ class ExportPoliciesViewTest(TestCase):
         self.assertGreater(len(resp.content), 0)
 
 
+class RegisterViewTest(TestCase):
+    """测试公开注册接口只创建普通用户。"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_register_creates_normal_user(self):
+        response = self.client.post(
+            '/api/auth/register/',
+            {'username': 'newuser', 'password': 'safe-pass-123'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username='newuser')
+        self.assertTrue(user.check_password('safe-pass-123'))
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+
+    def test_duplicate_username_rejected(self):
+        User.objects.create_user(username='existing', password='safe-pass-123')
+        response = self.client.post(
+            '/api/auth/register/',
+            {'username': 'existing', 'password': 'safe-pass-123'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('已存在', response.data['detail'])
+
+    def test_short_password_rejected(self):
+        response = self.client.post(
+            '/api/auth/register/',
+            {'username': 'shortpass', 'password': '123'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(User.objects.filter(username='shortpass').exists())
+
+
 class ParseDateTest(TestCase):
     """测试爬虫的 parse_date 函数。"""
 

@@ -39,9 +39,11 @@ docker compose ps
 curl http://localhost/api/health/          # {"status":"ok","db":true}
 ss -tlnp | grep -E '3306|8000'             # 应只见 127.0.0.1 绑定（安全）
 
-# 6. 创建登录账号（容器内执行）
+# 6. 创建管理员账号（容器内执行；普通用户可在登录页点击“去注册”自行创建）
 docker compose exec backend python manage.py createsuperuser
-#   普通用户：之后可用 python manage.py shell 里 User.objects.create_user(...) 创建
+
+# 查看当前用户（不会显示密码；含 ID、用户名、邮箱、是否管理员/启用、注册时间）
+docker compose exec backend python manage.py shell -c "from django.contrib.auth import get_user_model; U=get_user_model(); [print(u.id, u.username, u.email or '-', 'staff='+str(u.is_staff), 'superuser='+str(u.is_superuser), 'active='+str(u.is_active), u.date_joined.isoformat()) for u in U.objects.order_by('id')]"
 
 # 7. 首次采集数据（约 15-20 分钟，含限速）
 docker compose exec backend python manage.py crawl_policies --all -u
