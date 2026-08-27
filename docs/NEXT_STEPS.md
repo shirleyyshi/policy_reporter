@@ -45,7 +45,7 @@
 
 ## D. P1 演示价值提升（按面试 ROI 排序，均可交给 AI 实现）
 
-- [x] D1. AgentRun 用户隔离——已完成（2026-08-24）：`user` 外键 + 迁移 0003；trace/answer/download 越权 404（不泄露存在性）、列表只含本人、历史 run（user=null）不可见、未登录 401；新增 7 个隔离测试，全量 201 passed。**部署后需用演示账号重跑一次 Agent**（旧 run 无归属不再显示，T6 历史回看依赖）
+- [x] D1. AgentRun 用户隔离——已完成（2026-08-24）：`user` 外键 + 迁移 0003；trace/answer/download 越权 404（不泄露存在性）、列表只含本人、历史 run（user=null）不可见、未登录 401；新增 7 个隔离测试，全量 209 passed。**部署后需用演示账号重跑一次 Agent**（旧 run 无归属不再显示，T6 历史回看依赖）
 - [x] D2. 政策详情页 + 来源/发布日期/采集日期展示——已完成（2026-08-24）：`/api/policies/detail/` + `PolicyDetail.vue`（`/policy/:source/:id`），编辑页标题可点击；详情页含原文链接与采集时间/手动录入标记。新增 8 个后端测试（含非数字 id 404、source 校验 400）
 - [x] D3. 前端接 refresh token——已完成（2026-08-24）：401 拦截器单飞刷新 + 重放原请求，登录接口 401 不触发；access 2h 过期静默续期
 - [x] D4. Celery/RQ + Redis 异步化——**决定不做**（2026-08-24）：工作量 2-3 天且演示价值增量低。面试不回避，按 PLAYBOOK §4.2 话术讲"多 worker 边界 + Redis 方案"（当前单 worker 内线程 + DB 状态持久化的取舍，以及迁移路径），见 G3
@@ -55,8 +55,8 @@
 - [ ] E1. RAG 正文片段真正参与摘要上下文——**不做**：会引出 embedding 选型/chunk 策略/rerank/效果评估一连串深水区提问，当前口径"rag_search 是检索建议"反而干净（话术见 PLAYBOOK §3）
 - [ ] E2. 评估集版本化 + `eval_reports/` 入库——**不做**：重跑消融要花 DeepSeek 费用；面试口径"历史结果，复现路径已知（run_eval），评估方法论可讲"（PLAYBOOK §5）
 - [x] E3. "Critic 修复率"改名"建议重规划率"——已完成（2026-08-24）：代码显示文案（metrics/reporter/runner/run_eval）+ README 消融表 + PLAYBOOK T10 + PREP Q5 全部更名；英文 key `critic_replan_rate` 本就准确未动。改名理由本身是面试加分点（指标口径严谨）
-- [x] E4a. 健康检查端点 `/api/health/`——已完成（2026-08-24）：匿名可访问（探活不带凭据），返回 status/db；DB 异常返回 503。docker-compose backend 挂 healthcheck（python urllib 探活），frontend 改为 `condition: service_healthy` 启动顺序。新增 2 个测试
-- [ ] E4b. 接口分页——**不做**：166 条数据分页价值低，且引出深度分页/cursor 等提问；前端三处列表全要改
+- [x] E4a. 健康检查端点 `/api/health/`——已完成（2026-08-24）：匿名可访问（探活不带凭据），返回 status/db；DB 异常返回 503。Docker Compose backend 挂 healthcheck（python urllib 探活），frontend 改为 `condition: service_healthy` 启动顺序。新增 2 个测试
+- [ ] E4b. 接口分页——**不做**：当前数据量分页价值低，且引出深度分页/cursor 等提问；前端三处列表全要改
 - [ ] E4c. 爬虫失败告警 / robots 记录——**不做**：需接通知渠道（第三方依赖）；现状口径"失败不落库 + 日志可查 + 每周抽检（F 区）"已自洽
 
 ## F. 周期性运维（每周约 10 分钟）
@@ -69,7 +69,7 @@
 ## G. 面试准备（投递前 1-2 周集中做）
 
 - [ ] G1. 按 `interview/INTERVIEW_PLAYBOOK.md` §6 的 24 小时清单逐项执行（demo 账号、D1/D2 日期、预跑 T4/T5、容器 healthy、余额）
-- [ ] G2. 背熟核心数字：166 条 / 约 210 测试 / 80% 覆盖率门槛 / 消融表（指标口径：建议重规划率）
+- [ ] G2. 背熟核心数字：166 条历史数据快照 / 209 个测试 / 80% 覆盖率门槛 / 消融表（指标口径：建议重规划率）
 - [ ] G3. 练到脱口而出：§4.3"广东不是上海"、§4.2"多 worker 边界 + Redis 方案"、§4.2"用户隔离 404 防枚举"
 - [ ] G4. 3 分钟 STAR 介绍（§1.3）对着镜子讲两遍
 - [ ] G5. 熟读 `ARCHITECTURE.md`（零基础架构图）——应对"给非技术的人讲清楚系统"类问题；面试官不同背景时按该文档的分层切换详略

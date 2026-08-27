@@ -14,7 +14,7 @@ jobs:
       # CI 用 SQLite，无需 MySQL service container，更快更稳定
       DATABASE_URL: sqlite:///test_db.sqlite3
       SECRET_KEY: ci-test-secret-key-not-for-production
-      DEEPSEEK_API_KEY: sk-ci-fake-key
+      DEEPSEEK_API_KEY: ci-placeholder-not-a-real-key
       DEEPSEEK_BASE_URL: https://api.deepseek.com
       DEBUG: "True"
       ALLOWED_HOSTS: localhost,127.0.0.1

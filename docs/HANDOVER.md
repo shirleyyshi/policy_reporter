@@ -24,7 +24,7 @@
 - Agent 的政策输入来自数据库，不会在运行日报时实时抓网页；`save_to_db` 是为保持工具集完整而保留的 stub，不是实际写库步骤。
 - AgentRun 状态和已生成 docx 能在重启后读取；但后台 Agent 线程、等待人工回答的事件都在单个进程内。**进程重启不会续跑执行中的任务**，多 worker 下也不能保证人工回答命中原运行线程。
 - 当前服务是 HTTP/IP 部署，没有域名和 HTTPS。不要在简历、README 或面试中说"已配 HTTPS""生产级"或"高并发"。
-- 测试与消融数据是历史结果：仓库当前 211 个测试（含 config/ 中间件、D1 用户隔离、D2 详情端点与 E4a 健康检查测试），CI 覆盖率门槛 80%（README 记录最近一次 82%）；README 的消融对比表来自历史 eval 运行，`backend/eval_reports/` 报告目录未入库，如需复现需重跑 `run_eval`（会调用 DeepSeek 产生费用）。
+- 测试与消融数据是历史结果：仓库当前 209 个测试，CI 覆盖率门槛 80%；README 的消融对比表来自历史 eval 运行，`backend/eval_reports/` 报告目录未入库，如需复现需重跑 `run_eval`（会调用 DeepSeek 产生费用）。
 
 ## 2. 架构和数据流
 
@@ -62,7 +62,7 @@ Agent 的典型路径为：`fetch_central/fetch_local -> clean_policy -> dedupli
 | admin IP 白名单中间件 | `backend/config/middleware.py` |
 | 容器和外部端口 | `docker-compose.yml`、`frontend/nginx.conf` |
 | CI | `.github/workflows/test.yml` |
-| 定时采集脚本（服务器未注册 cron） | `scripts/crawl.sh`、`scripts/crawl.bat` |
+| 定时采集脚本（cron 是否注册取决于部署环境） | `scripts/crawl.sh`、`scripts/crawl.bat` |
 
 ## 4. 数据源与维护原则
 
@@ -96,7 +96,7 @@ Agent 的典型路径为：`fetch_central/fetch_local -> clean_policy -> dedupli
 
 ## 5. 日常操作与验收
 
-以下命令在服务器项目目录 `/opt/policy_reporter` 执行；定时采集脚本 `scripts/crawl.sh` 已就绪但**尚未注册 cron**，如需每日自动采集，按脚本头部注释注册即可。
+以下命令在服务器项目目录 `/opt/policy_reporter` 执行。仓库已提供定时采集脚本 `scripts/crawl.sh`，具体服务器是否已注册 cron 应以 `crontab -l` 的结果为准；如未注册，可按脚本头部注释或 `RUNBOOK.md` 配置。
 
 ```bash
 # 增量采集；可重复执行

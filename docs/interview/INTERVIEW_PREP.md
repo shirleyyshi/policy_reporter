@@ -109,7 +109,7 @@
 • 设计 4 组消融实验验证组件贡献度，发现 Critic 必须配套 Replanner 才能转化诊断为修复
 • RAG 按需调用 + episodic memory 跨会话经验复用，不同数据密度走不同路径
 • state 持久化到 DB 支持 gunicorn 多 worker，人在回路工程化（5min 超时兜底）
-• 179 个单元测试，覆盖率 82%，GitHub Actions CI 自动化
+• 209 个单元测试，GitHub Actions CI 设置 80% 覆盖率门槛
 • 部署于云服务器，Docker Compose 三容器编排，admin IP 白名单 + fail2ban 加固
 • 数据库层可迁移到达梦/人大金仓（Django ORM 屏蔽方言），支持国产化适配
 

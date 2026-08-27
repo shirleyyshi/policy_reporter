@@ -9,7 +9,7 @@
 | 框架 | Vue 3（Composition API） |
 | UI 库 | Element Plus |
 | 路由 | Vue Router 4（懒加载） |
-| 状态 | Pinia（选择状态管理） |
+| 状态 | Vue `reactive` 轻量状态对象（选择状态） |
 | HTTP | Axios |
 | 构建 | Vite 5 |
 | 部署 | Nginx（多阶段 Docker 构建） |
@@ -19,12 +19,14 @@
 | 路由 | 文件 | 功能 |
 |------|------|------|
 | `/login` | [Login.vue](src/views/Login.vue) | JWT 登录 |
-| `/` | [Home.vue](src/views/Home.vue) | 首页：政策数量统计 + 日期选择 + 进入 Agent 运行 |
-| `/central` | [CentralEditor.vue](src/views/CentralEditor.vue) | 中央政策列表（勾选导出） |
-| `/local` | [LocalEditor.vue](src/views/LocalEditor.vue) | 地方政策列表（勾选导出） |
-| `/legal` | [LegalEditor.vue](src/views/LegalEditor.vue) | 法律法规编辑 |
-| `/agent/runs` | [AgentRuns.vue](src/views/AgentRuns.vue) | Agent 历史运行列表 |
-| `/agent/run/:id` | [AgentRun.vue](src/views/AgentRun.vue) | 单次运行详情：实时 trace + 人在回路弹窗 |
+| `/register` | [Register.vue](src/views/Register.vue) | 用户注册 |
+| `/home` | [Home.vue](src/views/Home.vue) | 首页：政策数量统计、日期选择和模式入口 |
+| `/editor/central` | [CentralEditor.vue](src/views/CentralEditor.vue) | 中央政策列表与选择 |
+| `/editor/local` | [LocalEditor.vue](src/views/LocalEditor.vue) | 地方政策列表与选择 |
+| `/editor/legal` | [LegalEditor.vue](src/views/LegalEditor.vue) | 合规资讯编辑 |
+| `/policy/:source/:id` | [PolicyDetail.vue](src/views/PolicyDetail.vue) | 政策详情与来源追溯 |
+| `/agent` | [AgentRun.vue](src/views/AgentRun.vue) | 启动 Agent、查看实时轨迹和处理人工确认 |
+| `/agent/runs` | [AgentRuns.vue](src/views/AgentRuns.vue) | 当前用户的 Agent 历史运行列表 |
 
 ## 开发
 
@@ -53,8 +55,10 @@ VITE_API_BASE=
 
 - 后端 API 前缀：`/api/`
 - JWT 登录：`POST /api/auth/login/` → 返回 token，存 localStorage
-- Agent 运行：`POST /api/agent/runs/` 创建 → `GET /api/agent/runs/{id}/state/` 每 2 秒轮询状态
-- 人在回路：状态变 `waiting_human` 时弹窗，`POST /api/agent/runs/{id}/submit/` 提交用户输入
+- Agent 运行：`POST /api/agent/run/` 启动 → `GET /api/agent/runs/{id}/` 每 2 秒轮询运行状态
+- 人在回路：状态变为 `waiting_human` 时弹窗，`POST /api/agent/runs/{id}/answer/` 提交用户输入
+- 运行记录：`GET /api/agent/runs/` 查看当前用户的历史运行
+- 文档下载：`GET /api/agent/runs/{id}/download/` 下载生成的 Word 文档
 
 ## 部署
 

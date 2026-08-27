@@ -15,7 +15,7 @@
 | 数据 | MySQL 8.0 + ChromaDB（向量检索） |
 | 前端 | Vue 3 + Element Plus + Vite |
 | 部署 | Docker Compose + Nginx |
-| 测试 | pytest + pytest-cov（覆盖率 82%，179 个测试） |
+| 测试 | pytest + pytest-cov（209 个测试，CI 覆盖率门槛 80%） |
 
 ## 核心能力
 
@@ -49,14 +49,16 @@ graph TB
     end
 
     subgraph 工具层["10 个工具"]
-        T1[fetch_central/local<br/>读 DB]
-        T2[clean_policy<br/>去 HTML]
-        T3[deduplicate<br/>标题相似度去重]
-        T4[classify_policy<br/>DB 元数据分类]
-        T5[summarize<br/>DeepSeek 摘要]
-        T6[rag_search<br/>ChromaDB 检索]
-        T7[format_docx<br/>生成 Word]
-        T8[ask_human<br/>人在回路]
+        T1[fetch_central<br/>读中央政策]
+        T2[fetch_local<br/>读地方政策]
+        T3[clean_policy<br/>去 HTML]
+        T4[deduplicate<br/>标题相似度去重]
+        T5[classify_policy<br/>DB 元数据分类]
+        T6[summarize<br/>DeepSeek 摘要]
+        T7[rag_search<br/>ChromaDB 检索]
+        T8[save_to_db<br/>持久化占位]
+        T9[format_docx<br/>生成 Word]
+        T10[ask_human<br/>人在回路]
     end
 
     subgraph 数据层["数据持久化"]
@@ -80,16 +82,16 @@ graph TB
     AgentEngine --> Critic
     AgentEngine --> Terminator
 
-    Actuator -->|调用| T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8
+    Actuator -->|调用| T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8 & T9 & T10
     Actuator -->|structured output| DeepSeek
     Critic -->|评估| DeepSeek
-    T5 -->|摘要| DeepSeek
+    T6 -->|摘要| DeepSeek
 
     T1 --> MySQL
-    T6 --> Chroma
-    T7 --> Docx
+    T7 --> Chroma
+    T9 --> Docx
     AgentEngine -->|save_state| AgentRun
-    T8 -->|threading.Event| AgentUI
+    T10 -->|threading.Event| AgentUI
 
     style 前端 fill:#1a1a2e,color:#e0e0e0
     style 后端 fill:#16213e,color:#e0e0e0
@@ -111,15 +113,19 @@ cp .env.example .env
 # 编辑 .env 填入 SECRET_KEY / DB_ROOT_PASSWORD / DEEPSEEK_API_KEY
 
 # 3. 启动
-docker-compose up -d --build
+docker compose up -d --build
 
 # 4. 创建超级用户 + 爬数据
-docker-compose exec backend python manage.py createsuperuser
-docker-compose exec backend python manage.py crawl_policies --all
-docker-compose exec backend python manage.py build_index
+docker compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py crawl_policies --all
+docker compose exec backend python manage.py build_index
 
-# 5. 访问 http://localhost
+# 5. 验证健康状态并访问页面
+curl http://localhost/api/health/
+# 浏览器访问 http://localhost
 ```
+
+完整的生产环境变量、定时采集、更新和故障排查步骤见 [运行说明书](docs/RUNBOOK.md)。
 
 ## 运行测试
 

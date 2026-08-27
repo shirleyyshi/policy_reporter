@@ -2,7 +2,7 @@
 
 > 用途：面试前复习 + 现场 demo 脚本 + 简历素材库。
 > 工程事实以 `../HANDOVER.md` 为准；架构总览（零基础版）见 `../ARCHITECTURE.md`，运行手册见 `../RUNBOOK.md`，中英文项目/简历介绍见 `../PROJECT_INTRO.md`；内网改造五问见 `INTERVIEW_PREP.md`。
-> 数字口径：178 条政策（2026-08-24 库内实数：中央 105 + 地方 73；每日 8 点 cron 自动采集会缓慢增长，**面试前一天查一次最新值**：`docker compose exec backend python manage.py shell -c "from report.models import *; print(CentralPolicy.objects.count(), LocalPolicy.objects.count())"`）、8 站点、约 210 个测试、CI 覆盖率门槛 80%（最近一次 82%）、消融数据为历史 eval 运行结果。
+> 数字口径：178 条政策是 2026-08-24 的历史快照（中央 105 + 地方 73；每日采集后可能增长，面试前一天查询最新值：`docker compose exec backend python manage.py shell -c "from report.models import *; print(CentralPolicy.objects.count(), LocalPolicy.objects.count())"`）、8 站点、209 个测试、CI 覆盖率门槛 80%、消融数据为历史 eval 运行结果。
 
 ---
 
@@ -25,7 +25,7 @@
   2. Agent 层：自研 ReAct 主循环（Actuator 每步一次 LLM 决策 / Critic 每 3 步质量检查 / Terminator 纯代码硬终止），10 个工具批量操作状态对象，LLM 只看计数摘要，控制 token。循环防护做了四层：最大步数、重复调用检测、连续失败终止、停滞检测。
   3. 可靠性：LLM 调用指数退避重试；状态每步落库（AgentRun），重启后可读取；人在回路用后台线程 + 前端 2 秒轮询 + 5 分钟超时兜底。
   4. 评估层：6 种数据场景自动发现（dense/sparse/empty/duplicate/partial_missing/with_legal），LLM-as-judge 三维打分，4 组消融实验验证组件贡献。
-  5. 工程化：Docker Compose 三容器、gunicorn 多 worker、JWT、GitHub Actions CI（覆盖率门槛 80%）、约 185 个测试。
+  5. 工程化：Docker Compose 三容器、Gunicorn 多 worker、JWT、GitHub Actions CI（覆盖率门槛 80%）、209 个测试。
 - **R 结果**：端到端跑通，166 条真实政策入库；消融显示关掉 Critic 后成功率从 75% 掉到 25%，且 Critic 必须配套 Replanner 才能把诊断转成修复——这是"组件不是越多越好"的量化证据。
 
 ### 1.4 叙事主线（贯穿所有回答）
@@ -53,7 +53,7 @@
   人在回路采用后台线程 + 2s 轮询 + 5min 超时兜底
 • 配置化爬虫覆盖 8 个政府公开站点（XPath 收敛于 JSON 配置，换源零代码改动），
   按来源 URL 增量去重，166 条真实政策入库
-• 约 210 个单元测试，GitHub Actions CI 覆盖率门槛 80%，Docker Compose 三容器部署
+• 209 个单元测试，GitHub Actions CI 覆盖率门槛 80%，Docker Compose 三容器部署
 ```
 
 **不要写的话**：生产级、高并发、微服务、全栈（前端不是卖点）、LangChain（没用）、统计显著（数据量撑不起）、"先进的 LLM 技术"（空话）。
@@ -268,6 +268,6 @@
 - [ ] T5 用 D2 预跑一遍确认弹窗出现
 - [ ] 服务器容器全部 healthy：`docker compose ps`
 - [ ] DeepSeek 账户余额充足
-- [ ] README 消融表和本手册 1.3 节的数字过一遍脑子（75%/25%/5.0/3.0/166 条/约 210 测试/80% 门槛）
+- [ ] README 消融表和本手册 1.3 节的数字过一遍脑子（75%/25%/5.0/3.0/178 条历史快照/209 测试/80% 门槛）
 - [ ] 「广东不是上海」话术（4.3 第一问）练到脱口而出
 - [ ] 「多 worker 边界 + Redis 方案」（4.2 第一问）练到脱口而出

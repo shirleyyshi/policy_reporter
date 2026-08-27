@@ -46,7 +46,7 @@ docker compose exec backend python manage.py createsuperuser
 docker compose exec backend python manage.py shell -c "from django.contrib.auth import get_user_model; U=get_user_model(); [print(u.id, u.username, u.email or '-', 'staff='+str(u.is_staff), 'superuser='+str(u.is_superuser), 'active='+str(u.is_active), u.date_joined.isoformat()) for u in U.objects.order_by('id')]"
 
 # 7. 首次采集数据（约 15-20 分钟，含限速）
-docker compose exec backend python manage.py crawl_policies --all -u
+docker compose exec backend python manage.py crawl_policies --all
 
 # 8. 重建检索索引（采集后必做；日常 cron 脚本已自动包含）
 docker compose exec backend python manage.py build_index
@@ -79,7 +79,7 @@ tail -30 /var/log/crawl.log
 
 ```bash
 # 全量（自动去重，重复跑安全）
-docker compose exec backend python manage.py crawl_policies --all -u
+docker compose exec backend python manage.py crawl_policies --all
 
 # 单站点试跑（不写库，验证站点配置是否还活着）
 docker compose exec backend python manage.py crawl_policies --site mof --dry-run
@@ -149,7 +149,7 @@ docker compose exec db mysqldump -uroot -p"$DB_ROOT_PASSWORD" policy_db > backup
 
 ```bash
 # 本地（仓库 backend/ 下，venv 激活）
-pytest                       # 全量 218 个，覆盖率门槛 80%
+pytest                       # 全量 209 个，CI 覆盖率门槛 80%
 
 # 容器内（需镜像含 dev 依赖）
 docker compose exec backend pytest --tb=short -q

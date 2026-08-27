@@ -1,7 +1,7 @@
 # ===== Policy_Reporter Docker 编排配置（生产 + 本地两用） =====
 # 使用：
-#   本地开发：docker-compose up -d
-#   生产部署：把 .env 填好后 docker-compose up -d
+#   本地开发：docker compose up -d
+#   生产部署：把 .env 填好后 docker compose up -d
 # 强制要求 .env 文件提供 SECRET_KEY / DB_ROOT_PASSWORD / DEEPSEEK_API_KEY
 
 services:

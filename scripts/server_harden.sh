@@ -1,5 +1,9 @@
 #!/bin/bash
-# D6 生产加固脚本（一次性执行）
+# 警告：此脚本会修改 .env、安装并重启系统服务、覆盖 Docker daemon 配置、
+# 重启 Docker、创建备份脚本并写入 cron。仅在审阅全部内容并确认目标服务器后执行；
+# 不要在本地开发机、共享服务器或未经授权的环境中直接运行。
+#
+# D6 服务器加固脚本（一次性执行）
 # 在服务器上跑：bash scripts/server_harden.sh
 # 完成后删除：rm scripts/server_harden.sh
 #
