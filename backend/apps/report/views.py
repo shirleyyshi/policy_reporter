@@ -119,7 +119,8 @@ def set_heading_font(paragraph, font_name="微软雅黑", font_size=14, bold=Tru
             set_font(run, font_name=font_name, font_size=font_size, bold=bold)
 
 
-def generate_docx(central, local, legal_text, output_stream, summary=None, report_date=None):
+def generate_docx(central, local, legal_text, output_stream, summary=None, report_date=None,
+                  related_analysis=None):
     doc = Document()
 
     # 标题日期：优先用调用方传入的日期（前端 selectedDate），否则回退到当天
@@ -194,6 +195,19 @@ def generate_docx(central, local, legal_text, output_stream, summary=None, repor
             add_hyperlink(p_item, url, title)
             if p_item.runs:
                 set_font(p_item.runs[0], font_size=11)
+
+    # 关联政策分析（Agent 路径可选：基于历史政策的延续/修订/配套分析，独立于当日摘要）
+    if related_analysis:
+        h_related = doc.add_heading("关联政策分析", level=1)
+        set_heading_font(h_related)
+        for para in related_analysis.splitlines():
+            line = para.strip()
+            if not line:
+                continue
+            p = doc.add_paragraph(line)
+            run = p.runs[0] if p.runs else p.add_run()
+            set_font(run, font_size=11)
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
     # 法律法规及合规资讯
     h_legal = doc.add_heading("法律法规及合规资讯", level=1)

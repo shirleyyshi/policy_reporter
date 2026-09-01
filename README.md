@@ -15,12 +15,12 @@
 | 数据 | MySQL 8.0 + ChromaDB（向量检索） |
 | 前端 | Vue 3 + Element Plus + Vite |
 | 部署 | Docker Compose + Nginx |
-| 测试 | pytest + pytest-cov（209 个测试，CI 覆盖率门槛 80%） |
+| 测试 | pytest + pytest-cov（219 个测试，CI 覆盖率门槛 80%） |
 
 ## 核心能力
 
 - **ReAct 完整循环**：Thought → Action → Observation → Thought，LLM 基于上一步工具返回结果决策
-- **10 个工具动态编排**：抓取 / 清洗 / 去重 / 分类 / RAG 检索 / 摘要 / 格式化 / 人在回路
+- **11 个工具动态编排**：抓取 / 清洗 / 去重 / 分类 / RAG 检索 / 关联分析 / 摘要 / 格式化 / 人在回路
 - **Critic 质量检查**：检测原地打转 / 数据为空 / 摘要质量差，触发 Replanner
 - **State DB 持久化**：支持 gunicorn 多 worker，服务重启后状态不丢
 - **RAG episodic memory**：跨会话经验复用，第二次运行参考历史决策
@@ -48,7 +48,7 @@ graph TB
         Terminator[Terminator<br/>代码硬终止]
     end
 
-    subgraph 工具层["10 个工具"]
+    subgraph 工具层["11 个工具"]
         T1[fetch_central<br/>读中央政策]
         T2[fetch_local<br/>读地方政策]
         T3[clean_policy<br/>去 HTML]
@@ -56,9 +56,10 @@ graph TB
         T5[classify_policy<br/>DB 元数据分类]
         T6[summarize<br/>DeepSeek 摘要]
         T7[rag_search<br/>ChromaDB 检索]
-        T8[save_to_db<br/>持久化占位]
-        T9[format_docx<br/>生成 Word]
-        T10[ask_human<br/>人在回路]
+        T8[related_analysis<br/>关联政策分析]
+        T9[save_to_db<br/>持久化占位]
+        T10[format_docx<br/>生成 Word]
+        T11[ask_human<br/>人在回路]
     end
 
     subgraph 数据层["数据持久化"]
@@ -160,7 +161,7 @@ pytest --cov=apps --cov-report=term-missing
 │   ├── apps/
 │   │   ├── agent/          # ReAct Agent 引擎
 │   │   │   ├── core.py     # 主循环（Actuator/Critic/Terminator）
-│   │   │   ├── tools.py    # 10 个工具
+│   │   │   ├── tools.py    # 11 个工具
 │   │   │   ├── rag.py      # ChromaDB 向量检索 + episodic memory
 │   │   │   ├── prompts.py  # LLM prompt 构造
 │   │   │   ├── eval/       # 消融实验 + LLM-as-judge

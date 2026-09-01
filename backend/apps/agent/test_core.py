@@ -486,3 +486,175 @@ class FetchToolsTest(TestCase):
         result = fetch_central(state, {"date": "2026-07-13"})
         self.assertEqual(result["fetched"], 0)
         self.assertEqual(state.raw_policies, [])
+
+    def test_fetch_repeated_call_is_idempotent(self):
+        """LLM 重复调 fetch 时同一政策不应进 raw_policies 两次（docx 重复的根因修复）。"""
+        CentralPolicy.objects.create(
+            title="重复政策", content="", type="通知",
+            publish_time=_make_dt(2026, 7, 13), source_url="http://c/1",
+        )
+        state = _make_state()
+        first = fetch_central(state, {"date": "2026-07-13"})
+        second = fetch_central(state, {"date": "2026-07-13"})
+
+        self.assertEqual(first["fetched"], 1)
+        self.assertEqual(second["fetched"], 0)
+        self.assertEqual(second["duplicates_skipped"], 1)
+        self.assertEqual(len(state.raw_policies), 1)
+
+    def test_fetch_extends_across_sources_without_cross_dup(self):
+        """fetch_central + fetch_local 组合仍正常累积（幂等只挡同源重复）。"""
+        CentralPolicy.objects.create(
+            title="c", content="", type="通知",
+            publish_time=_make_dt(2026, 7, 13), source_url="http://c/1",
+        )
+        LocalPolicy.objects.create(
+            title="l", content="", province="上海",
+            publish_time=_make_dt(2026, 7, 13), source_url="http://l/1",
+        )
+        state = _make_state()
+        fetch_central(state, {"date": "2026-07-13"})
+        fetch_local(state, {"date": "2026-07-13"})
+        fetch_central(state, {"date": "2026-07-13"})
+
+        self.assertEqual(len(state.raw_policies), 2)
+
+
+class FormatDocxDedupTest(TestCase):
+    """format_docx 兜底去重：LLM 跳过 deduplicate 工具时，docx 里同一政策也只能出现一次。"""
+
+    def _docx_titles(self, state):
+        from docx import Document
+        from io import BytesIO
+        result = TOOLS['format_docx'](state, {})
+        self.assertNotIn('error', result)
+        doc = Document(BytesIO(state.docx_bytes))
+        return [p.text for p in doc.paragraphs]
+
+    def _policy(self, source, title, url):
+        return {'source': source, 'title': title, 'content': '内容', 'type': '财政',
+                'source_url': url}
+
+    def test_same_policy_twice_in_clean_policies(self):
+        """clean_policies 里同一政策出现两次（重复 fetch + 跳过 dedup 场景）。"""
+        state = _make_state()
+        state.summary = '摘要'
+        p = self._policy('central', '关于XX的通知', 'http://c/1')
+        state.clean_policies = [p, dict(p)]
+
+        result = TOOLS['format_docx'](state, {})
+
+        self.assertEqual(result['central'], 1)
+        self.assertEqual(result['dedup_removed'], 1)
+
+    def test_same_title_across_central_and_local(self):
+        """地方转发中央文件（标题相同）时，地方侧剔除，docx 只出现一次。"""
+        state = _make_state()
+        state.summary = '摘要'
+        state.clean_policies = [
+            self._policy('central', '关于XX的通知', 'http://c/1'),
+            self._policy('local', '关于XX的通知', 'http://l/1'),
+        ]
+
+        result = TOOLS['format_docx'](state, {})
+
+        self.assertEqual(result['central'], 1)
+        self.assertEqual(result['local'], 0)
+
+    def test_different_policies_not_dropped(self):
+        """不同标题不同 URL 的政策不受去重影响。"""
+        state = _make_state()
+        state.summary = '摘要'
+        state.clean_policies = [
+            self._policy('central', '关于甲的通知', 'http://c/1'),
+            self._policy('central', '关于乙的公告', 'http://c/2'),
+            self._policy('local', '关于丙的办法', 'http://l/1'),
+        ]
+
+        result = TOOLS['format_docx'](state, {})
+
+        self.assertEqual(result['central'], 2)
+        self.assertEqual(result['local'], 1)
+        self.assertEqual(result['dedup_removed'], 0)
+
+
+class RelatedAnalysisTest(TestCase):
+    """related_analysis 工具：历史政策进独立分析章节，不混入当日数据。"""
+
+    def _mock_llm(self, content):
+        m = MagicMock()
+        m.choices[0].message.content = content
+        return m
+
+    def test_generates_analysis_from_history_hits(self):
+        state = _make_state()
+        state.clean_policies = [{
+            'source': 'central', 'title': '今日政策A', 'content': 'c',
+            'type': '财政', 'source_url': 'http://today/1',
+        }]
+        hits = [{
+            'title': '历史政策A', 'source': 'central', 'source_url': 'http://hist/1',
+            'publish_time': '2026-01-01 00:00:00', 'score': 0.8,
+        }]
+        with patch('agent.rag.search', return_value=hits), \
+             patch('agent.tools._openai_client') as mock_client:
+            mock_client.chat.completions.create.return_value = self._mock_llm('• 分析要点一')
+            result = TOOLS['related_analysis'](state, {})
+
+        self.assertNotIn('error', result)
+        self.assertEqual(result['history_count'], 1)
+        self.assertEqual(state.related_analysis, '• 分析要点一')
+
+    def test_excludes_today_policies_from_history(self):
+        """检索命中的当日政策自身（索引含当日数据）应被排除。"""
+        state = _make_state()
+        state.clean_policies = [{
+            'source': 'central', 'title': '今日政策A', 'content': 'c',
+            'type': '财政', 'source_url': 'http://today/1',
+        }]
+        hits = [{
+            'title': '今日政策A', 'source': 'central', 'source_url': 'http://today/1',
+            'publish_time': '2026-07-13 00:00:00', 'score': 1.0,
+        }]
+        with patch('agent.rag.search', return_value=hits):
+            result = TOOLS['related_analysis'](state, {})
+
+        self.assertEqual(result.get('related'), 0)
+        self.assertIsNone(state.related_analysis)
+
+    def test_no_policies_returns_error(self):
+        state = _make_state()
+        result = TOOLS['related_analysis'](state, {})
+        self.assertIn('error', result)
+
+
+class SummarizeTodayOnlyTest(TestCase):
+    """summarize：条数=当日政策数（最多5条），prompt 明确禁止引入历史政策。"""
+
+    def _captured_prompt(self, n_policies):
+        state = _make_state()
+        state.clean_policies = [
+            {'source': 'central', 'title': f'政策{i}', 'content': f'内容{i}', 'type': '财政',
+             'source_url': f'http://c/{i}'}
+            for i in range(n_policies)
+        ]
+        with patch('agent.tools._openai_client') as mock_client:
+            mock_client.chat.completions.create.return_value = self._mock_llm('• 摘要')
+            result = TOOLS['summarize'](state, {})
+            prompt = mock_client.chat.completions.create.call_args.kwargs['messages'][0]['content']
+        return result, prompt, state
+
+    def _mock_llm(self, content):
+        m = MagicMock()
+        m.choices[0].message.content = content
+        return m
+
+    def test_two_policies_ask_for_two_summaries(self):
+        result, prompt, state = self._captured_prompt(2)
+        self.assertIn('共2条', prompt)
+        self.assertIn('严禁引入所提供内容之外的信息', prompt)
+
+    def test_seven_policies_capped_at_five(self):
+        result, prompt, state = self._captured_prompt(7)
+        self.assertIn('共5条', prompt)
+

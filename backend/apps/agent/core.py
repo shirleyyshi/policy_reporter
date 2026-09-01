@@ -497,6 +497,7 @@ def _serialize_state(state: AgentState) -> dict:
         'raw_policies': state.raw_policies,
         'clean_policies': state.clean_policies,
         'summary': state.summary,
+        'related_analysis': state.related_analysis,
         'step': state.step,
         'status': state.status,
         'fail_count': state.fail_count,
@@ -532,6 +533,7 @@ def _deserialize_state(state: AgentState, data: dict, run: AgentRun):
             p['publish_time'] = _restore_datetime(p['publish_time'])
     state.clean_policies = data.get('clean_policies', [])
     state.summary = data.get('summary')
+    state.related_analysis = data.get('related_analysis')
     state.step = data.get('step', 0)
     state.status = data.get('status', 'running')
     state.fail_count = data.get('fail_count', 0)

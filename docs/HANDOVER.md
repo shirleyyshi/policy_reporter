@@ -24,7 +24,7 @@
 - Agent 的政策输入来自数据库，不会在运行日报时实时抓网页；`save_to_db` 是为保持工具集完整而保留的 stub，不是实际写库步骤。
 - AgentRun 状态和已生成 docx 能在重启后读取；但后台 Agent 线程、等待人工回答的事件都在单个进程内。**进程重启不会续跑执行中的任务**，多 worker 下也不能保证人工回答命中原运行线程。
 - 当前服务是 HTTP/IP 部署，没有域名和 HTTPS。不要在简历、README 或面试中说"已配 HTTPS""生产级"或"高并发"。
-- 测试与消融数据是历史结果：仓库当前 209 个测试，CI 覆盖率门槛 80%；README 的消融对比表来自历史 eval 运行，`backend/eval_reports/` 报告目录未入库，如需复现需重跑 `run_eval`（会调用 DeepSeek 产生费用）。
+- 测试与消融数据是历史结果：仓库当前 219 个测试，CI 覆盖率门槛 80%；README 的消融对比表来自历史 eval 运行，`backend/eval_reports/` 报告目录未入库，如需复现需重跑 `run_eval`（会调用 DeepSeek 产生费用）。
 
 ## 2. 架构和数据流
 
@@ -40,14 +40,14 @@ Vue 3 前端 -> Nginx -> Django REST API -> MySQL / ChromaDB / DeepSeek API
                                       -> media/agent_docx/*.docx
 ```
 
-Agent 的典型路径为：`fetch_central/fetch_local -> clean_policy -> deduplicate -> classify_policy -> summarize -> format_docx`。当数据稀少时，模型可选择 `rag_search`；Critic 定期给出重规划建议，Terminator 以最大步数（15）、连续失败（3 次）、重复调用（3 次）、停滞（5 步无变化）和 ask_human 上限（3 次）等规则兜底。LLM 调用带 3 次指数退避重试。
+Agent 的典型路径为：`fetch_central/fetch_local -> clean_policy -> deduplicate -> classify_policy -> (related_analysis) -> summarize -> format_docx`。摘要仅基于当日政策，每条政策对应 1 条摘要（最多 5 条，不足不凑数）；`rag_search` 只读检索历史背景，`related_analysis` 基于历史政策生成"关联政策分析"，进入报告独立章节，二者均不混入当日摘要。Critic 定期给出重规划建议，Terminator 以最大步数（15）、连续失败（3 次）、重复调用（3 次）、停滞（5 步无变化）和 ask_human 上限（3 次）等规则兜底。LLM 调用带 3 次指数退避重试。fetch 工具按 (source, id) 幂等，format_docx 前有 URL+标题兜底去重，保证同一政策不会在 docx 中出现两次。
 
 ## 3. 关键文件
 
 | 用途 | 文件 |
 |---|---|
 | Agent 主循环、状态持久化、人工介入 | `backend/apps/agent/core.py` |
-| 10 个 Agent 工具 | `backend/apps/agent/tools.py` |
+| 11 个 Agent 工具 | `backend/apps/agent/tools.py` |
 | Agent 提示词 | `backend/apps/agent/prompts.py` |
 | 向量检索与 episodic memory | `backend/apps/agent/rag.py` |
 | Agent API（启动/轮询/回答/下载） | `backend/apps/agent/views.py` |

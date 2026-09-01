@@ -260,6 +260,8 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
         print(f"  [第 {page_num} 页] 找到 {len(links)} 个链接")
 
         # 过滤：标题包含 title_filter 中的关键词
+        # 例外：列表页截断的长标题（多部门联合发文常以 .../… 结尾）可能截掉了
+        # 末尾的关键词，放行进详情页，用详情页真实标题二次过滤（见下方 detail 循环）
         page_new_links = []
         for a in links:
             title_text = a.text_content().strip()
@@ -267,8 +269,10 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
             if not title_text or not href:
                 continue
             if title_filter and not any(kw in title_text for kw in title_filter):
-                stats["filtered"] += 1
-                continue
+                truncated = title_text.endswith("...") or title_text.endswith("…")
+                if not truncated:
+                    stats["filtered"] += 1
+                    continue
             full_url = urljoin(list_url, href)
             page_new_links.append((title_text, full_url))
 
@@ -301,6 +305,15 @@ def crawl_site(config, dry_run=False, max_pages_override=None):
                 title = extract_title(detail_tree, config) or title_hint
                 content = extract_content(detail_tree, config)
                 pub_date = extract_date(detail_tree, config)
+
+                # 详情页标题二次过滤：
+                # 1. 列表页截断标题的复核（真实标题不含关键词则丢弃）
+                # 2. 列表标题碰巧含关键词但详情标题实际不含（如"通知"出现在正文引用里）同样按白名单口径执行
+                if title_filter and not any(kw in title for kw in title_filter):
+                    stats["filtered"] += 1
+                    print(f"  [过滤] {title[:40]}...")
+                    time.sleep(delay)
+                    continue
 
                 if not content:
                     print(f"  [跳过] {title[:40]}... (正文为空)")

@@ -149,7 +149,7 @@ docker compose exec db mysqldump -uroot -p"$DB_ROOT_PASSWORD" policy_db > backup
 
 ```bash
 # 本地（仓库 backend/ 下，venv 激活）
-pytest                       # 全量 209 个，CI 覆盖率门槛 80%
+pytest                       # 全量 219 个，CI 覆盖率门槛 80%
 
 # 容器内（需镜像含 dev 依赖）
 docker compose exec backend pytest --tb=short -q
