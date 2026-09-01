@@ -56,8 +56,11 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       # 持久化 media 目录（Agent 生成的 docx 不随容器重启丢失）
-      - backend_media:/app/media
-      - backend_static:/app/staticfiles
+    - backend_media:/app/media
+    - backend_static:/app/staticfiles
+    # 持久化 chromadb ONNX embedding 模型缓存（~80MB）：容器重建后无需重新下载，
+    # 否则 rebuild 后首次 build_index 会卡在模型下载
+    - backend_chroma_cache:/root/.cache/chroma
     # 探活走 /api/health/（匿名端点，DB 异常时返回 503，容器会显示 unhealthy）
     # 细节：127.0.0.1 避免 IPv6 解析问题；ProxyHandler({}) 绕过容器内可能注入的
     # http_proxy 环境变量（urllib 会尊重代理导致探活打到代理上失败）
@@ -87,3 +90,4 @@ volumes:
   db_data:
   backend_media:
   backend_static:
+  backend_chroma_cache:

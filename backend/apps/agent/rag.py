@@ -30,8 +30,9 @@ _collection = None
 _episodic_collection = None
 
 
-# anonymized_telemetry=False：chromadb 遥测依赖的 posthog 版本不兼容，
-# 每次操作打印 "Failed to send telemetry event ... capture()" 噪音污染 cron 日志
+# anonymized_telemetry=False 关闭遥测发送；requirements.txt 同时锁定 posthog<3
+# （chromadb~=0.5.23 的模块级 posthog.capture() 三参调用与 posthog>=3 新签名不兼容，
+# 即使 disabled 也会抛 TypeError 被捕获打印噪音）
 _CHROMA_SETTINGS = chromadb.config.Settings(anonymized_telemetry=False)
 
 
