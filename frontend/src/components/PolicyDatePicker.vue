@@ -53,6 +53,7 @@
           <div class="pdp-legend">
             <span><i class="dot has"></i>有政策</span>
             <span><i class="dot none"></i>无政策</span>
+            <span><i class="dot today"></i>今天</span>
             <span class="legend-note">未来日期不可选</span>
           </div>
         </div>
@@ -344,6 +345,7 @@ onUnmounted(() => {
 .pdp-cell:not(.blank):not(.future):hover {
   background: rgba(0, 229, 255, 0.18);
 }
+/* 今天标记用灰色圆点：与"有政策"的青色字彻底区分，避免误读 */
 .pdp-cell.today::after {
   content: '';
   position: absolute;
@@ -353,7 +355,7 @@ onUnmounted(() => {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #00e5ff;
+  background: #909399;
 }
 .pdp-cell.selected {
   background: linear-gradient(135deg, #00e5ff, #2979ff);
@@ -389,6 +391,7 @@ onUnmounted(() => {
 }
 .dot.has { background: #00e5ff; }
 .dot.none { background: #303133; opacity: 0.65; }
+.dot.today { background: #909399; }
 .legend-note {
   margin-left: auto;
   color: #909399;
